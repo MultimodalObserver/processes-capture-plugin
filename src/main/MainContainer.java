@@ -1,20 +1,19 @@
 package main;
 
+import com.google.gson.Gson;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Stream;
 
 public class MainContainer {
     public static void main(String[] args){
-        String fileSeparator = System.getProperty("file.separator");
-        String lineSeparator = System.getProperty("line.separator");
-        String dataSeparator = ",";
-        String other = "null";
-        String outputPath = "../../output.txt";
+        String outputPath = "output.json";
         File file = new File(outputPath);
         FileWriter fileWriter = null;
         BufferedWriter bufferedWriter = null;
@@ -27,24 +26,13 @@ public class MainContainer {
             System.out.println("Error al crear el writer");
             return;
         }
-        Object[] processes = ProcessHandle.allProcesses().toArray();
-        for(Object process : processes){
-            ProcessHandle aux = (ProcessHandle) process;
-            String pid = String.valueOf(aux.pid());
-            String userName = aux.info().user().orElse(other);
-            String startInstant = aux.info().startInstant().orElse(Instant.MIN).toString();
-            String totalCpuDuration = aux.info().totalCpuDuration().orElse(Duration.ZERO).toString();
-            String command = aux.info().command().orElse(other);
-            String processString = pid + dataSeparator + userName + dataSeparator +
-                    startInstant + dataSeparator + totalCpuDuration + dataSeparator +
-                    command + lineSeparator;
-            try {
-                bufferedWriter.write(processString);
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.out.println("Error al escribir en el archivo de salida");
-                return;
-            }
+        String jsonProcessesArray = processesSnapshotToJsonFormat(ProcessHandle.allProcesses());
+        try {
+            bufferedWriter.write(jsonProcessesArray);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Error al escribir en el archivo de salida");
+            return;
         }
         try {
             bufferedWriter.close();
@@ -56,21 +44,25 @@ public class MainContainer {
         System.out.println("Archivo de salida escrito correctamente");
     }
 
-    /*
-    private static String processDetails(ProcessHandle process) {
-        return String.format("%8d %8s %10s %26s %-40s",
-                process.pid(),
-                text(process.info().user()),
-                text(process.info().startInstant()),
-                text(process.info().command()));
-    }
-
-    private static String text(Optional<?> optional) {
-        return optional.map(Object::toString).orElse("-");
-    }
-    */
-
-    public void storeProcessInfo(){
-
+    private static String processesSnapshotToJsonFormat(Stream<ProcessHandle> processes){
+        Gson gson = new Gson();
+        String other = null;
+        List<String> jsonStringList= new ArrayList<>();
+        processes.forEach(process -> {
+            String pid = String.valueOf(process.pid());
+            String userName = process.info().user().orElse(other);
+            String startInstant = process.info().startInstant().orElse(Instant.MIN).toString();
+            String totalCpuDuration = process.info().totalCpuDuration().orElse(Duration.ZERO).toString();
+            String command = process.info().command().orElse(other);
+            HashMap<String, String> jsonMap = new HashMap<>();
+            jsonMap.put("pid", pid);
+            jsonMap.put("userName", userName);
+            jsonMap.put("startInstant", startInstant);
+            jsonMap.put("totalCpuDuration", totalCpuDuration);
+            jsonMap.put("command", command);
+            String jsonProcessString = gson.toJson(jsonMap);
+            jsonStringList.add(jsonProcessString);
+        });
+        return gson.toJson(jsonStringList);
     }
 }
