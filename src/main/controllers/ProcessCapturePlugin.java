@@ -1,7 +1,9 @@
-package main;
+package main.controllers;
 
 
 import mo.capture.CaptureProvider;
+import mo.communication.streaming.capture.PluginCaptureListener;
+import mo.core.I18n;
 import mo.core.plugin.Extends;
 import mo.core.plugin.Extension;
 import mo.organization.Configuration;
@@ -13,8 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-import bibliothek.util.xml.XElement;
-
 @Extension(
         xtends = {
                 @Extends(extensionPointId = "mo.capture.CaptureProvider")
@@ -24,15 +24,19 @@ import bibliothek.util.xml.XElement;
 public class ProcessCapturePlugin implements CaptureProvider {
 
     private static final Logger logger = Logger.getLogger(ProcessCapturePlugin.class.getName());
+    private I18n i18n;
     List<Configuration> configurations;
+    List<PluginCaptureListener> dataListeners;
 
     public ProcessCapturePlugin(){
-        configurations = new ArrayList<>();
+        this.configurations = new ArrayList<>();
+        this.i18n = new I18n(ProcessCapturePlugin.class);
+        this.dataListeners = new ArrayList<>();
     }
 
     @Override
     public String getName() {
-        return "Processes";
+        return this.i18n.s("processCapturePluginDisplayedName");
     }
 
     @Override
@@ -44,7 +48,7 @@ public class ProcessCapturePlugin implements CaptureProvider {
 
     @Override
     public List<Configuration> getConfigurations() {
-        return configurations;
+        return this.configurations;
     }
 
     @Override
@@ -56,4 +60,5 @@ public class ProcessCapturePlugin implements CaptureProvider {
     public File toFile(File file) {
         return null;
     }
+
 }
