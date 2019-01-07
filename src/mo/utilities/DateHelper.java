@@ -1,4 +1,4 @@
-package main.utilities;
+package mo.utilities;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;

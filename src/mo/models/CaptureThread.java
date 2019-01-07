@@ -1,54 +1,69 @@
-package main;
+package mo.models;
 
 import com.google.gson.Gson;
+import mo.controllers.ProcessRecorder;
+import mo.utilities.DateHelper;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.logging.Level;
 import java.util.stream.Stream;
 
-public class MainContainer {
-    public static void main(String[] args){
-        String outputPath = "output.json";
-        File file = new File(outputPath);
-        FileWriter fileWriter = null;
-        BufferedWriter bufferedWriter = null;
-        try{
-            fileWriter = new FileWriter(file);
-            bufferedWriter = new BufferedWriter(fileWriter);
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("Error al crear el writer");
-            return;
-        }
-        /* Solo los procesos que esten corriendo */
-        Stream<ProcessHandle> aliveProcesses = ProcessHandle.allProcesses().filter(process -> {
-            return process.isAlive();
-        });
-        String jsonProcessesArray = processesSnapshotToJsonFormat(aliveProcesses);
-        try {
-            bufferedWriter.write(jsonProcessesArray);
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("Error al escribir en el archivo de salida");
-            return;
-        }
-        try {
-            bufferedWriter.close();
-            fileWriter.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("Error al cerrar el archivo creado");
-        }
-        System.out.println("Archivo de salida escrito correctamente");
+public class CaptureThread extends Thread {
+    private int status;
+    private FileOutputStream fileOutputStream;
+    public static final int RUNNING_STATUS = 1;
+    public static final int PAUSED_STATUS = 2;
+    public static final int STOPPED_STATUS = 3;
+    private String pauseTime;
+
+    public CaptureThread(int status, FileOutputStream fileOutputStream) {
+        this.status = status;
+        this.pauseTime = null;
+        this.fileOutputStream = fileOutputStream;
     }
 
-    private static String processesSnapshotToJsonFormat(Stream<ProcessHandle> processes){
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        if(status != PAUSED_STATUS){
+            this.pauseTime = null;
+        }
+        else{
+            this.pauseTime = DateHelper.now();
+        }
+        this.status = status;
+    }
+
+    @Override
+    public void run(){
+        while(this.status == RUNNING_STATUS){
+            /* Solo los procesos que esten corriendo */
+            Stream<ProcessHandle> aliveProcesses = ProcessHandle.allProcesses().filter(process -> {
+                return process.isAlive();
+            });
+            String captureTime = this.pauseTime == null ? DateHelper.now() : this.pauseTime;
+            String jsonProcessesArray = processesSnapshotToJsonFormat(aliveProcesses, captureTime);
+            try {
+                this.fileOutputStream.write(jsonProcessesArray.getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.out.println("Error al escribir en el archivo de salida");
+                ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
+                return;
+            }
+            System.out.println("Archivo de salida escrito correctamente");
+        }
+    }
+
+    private String processesSnapshotToJsonFormat(Stream<ProcessHandle> processes, String captureTime){
         Gson gson = new Gson();
         String otherString = "-";
         long otherLong = -1;
@@ -90,6 +105,7 @@ public class MainContainer {
             jsonMap.put("parentPid", parentPid);
             jsonMap.put("hasChildren", hasChildren);
             jsonMap.put("supportsNormalTermination", supportsNormalTermination);
+            jsonMap.put("captureTime", captureTime);
             String jsonProcessString = gson.toJson(jsonMap);
             jsonStringList.add(jsonProcessString);
         });

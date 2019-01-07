@@ -1,4 +1,4 @@
-package main.models;
+package mo.models;
 
 /* Clase POJO utilizada para asignar de manera custom los elementos de un comboBox,
 en especifico para permitir hacer el mape de un elemento del comboBox en multiples idiomas:

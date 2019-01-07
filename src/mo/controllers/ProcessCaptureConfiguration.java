@@ -1,4 +1,4 @@
-package main.controllers;
+package mo.controllers;
 
 import mo.capture.RecordableConfiguration;
 import mo.communication.streaming.capture.PluginCaptureListener;
@@ -8,10 +8,19 @@ import mo.organization.Participant;
 import mo.organization.ProjectOrganization;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ProcessCaptureConfiguration implements RecordableConfiguration, PluginCaptureSender {
 
+    private String id;
     private ProcessRecorder processRecorder;
+    private static final Logger LOGGER = Logger.getLogger(ProcessCaptureConfiguration.class.getName());
+
+    public ProcessCaptureConfiguration(String id){
+        this.id = id;
+    }
 
     @Override
     public void setupRecording(File file, ProjectOrganization projectOrganization, Participant participant) {
@@ -25,22 +34,22 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
 
     @Override
     public void cancelRecording() {
-        processRecorder.stop();
+        processRecorder.cancel();
     }
 
     @Override
     public void pauseRecording() {
-
+        processRecorder.pause();
     }
 
     @Override
     public void resumeRecording() {
-
+        processRecorder.resume();
     }
 
     @Override
     public void stopRecording() {
-
+        processRecorder.stop();
     }
 
     @Override
@@ -80,16 +89,30 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
 
     @Override
     public String getId() {
-        return null;
+        return this.id;
     }
 
     @Override
-    public File toFile(File file) {
+    public File toFile(File parent) {
+        try {
+            File f = new File(parent, "processes_"+id+".xml");
+            f.createNewFile();
+            return f;
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, null, ex);
+        }
         return null;
     }
 
     @Override
     public Configuration fromFile(File file) {
+        String fileName = file.getName();
+        if (fileName.contains("_") && fileName.contains(".")){
+            String newId = fileName.substring(
+                    fileName.indexOf('_') + 1, fileName.lastIndexOf("."));
+            ProcessCaptureConfiguration c = new ProcessCaptureConfiguration(newId);
+            return c;
+        }
         return null;
     }
 }

@@ -1,6 +1,6 @@
-package main.views;
+package mo.views;
 
-import main.models.CustomComboBoxItem;
+import mo.models.CustomComboBoxItem;
 import mo.core.I18n;
 
 import javax.swing.*;
