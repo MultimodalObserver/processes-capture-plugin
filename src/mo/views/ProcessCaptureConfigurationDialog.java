@@ -35,5 +35,4 @@ public class ProcessCaptureConfigurationDialog {
         this.filtersComboBox = new JComboBox(model);
         this.filtersComboBox.setSelectedIndex(0);
     }
-
 }
