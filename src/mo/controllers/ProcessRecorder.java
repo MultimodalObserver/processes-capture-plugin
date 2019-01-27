@@ -19,6 +19,9 @@ public class ProcessRecorder {
     ProjectOrganization projectOrganization;
     Participant participant;
     ProcessCaptureConfiguration captureConfigurationController;
+    public static final int ALL_PROCESSES = 0;
+    public static final int ONLY_RUNNING_PROCESSES = 1;
+    public static final int ONLY_NOT_RUNNING_PROCESSES = 2;
     private File outputFile;
     private FileOutputStream fileOutputStream;
     private FileDescription fileDescription;
@@ -35,6 +38,8 @@ public class ProcessRecorder {
         this.captureConfigurationController = captureConfigurationController;
         this.dataListeners = new ArrayList<>();
         this.createOutputFile(stageFolder);
+        this.captureThread = new CaptureThread(CaptureThread.RUNNING_STATUS, this.fileOutputStream);
+        this.captureThread.start();
     }
 
     private void createOutputFile(File parent) {
@@ -64,17 +69,11 @@ public class ProcessRecorder {
 
 
     public void start(){
-        this.captureThread = new CaptureThread(CaptureThread.RUNNING_STATUS, this.fileOutputStream);
+        this.captureThread.start();
     }
 
     public void stop(){
-        try {
-            this.captureThread.setStatus(CaptureThread.STOPPED_STATUS);
-            this.fileOutputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-            LOGGER.log(Level.SEVERE, null, e);
-        }
+        this.captureThread.setStatus(CaptureThread.STOPPED_STATUS);
     }
 
     /* Para el pause y resume, hay que registrar el tiempo que se pauso y el que se resumió */

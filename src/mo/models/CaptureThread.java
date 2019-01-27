@@ -44,22 +44,36 @@ public class CaptureThread extends Thread {
 
     @Override
     public void run(){
-        while(this.status == RUNNING_STATUS){
-            /* Solo los procesos que esten corriendo */
-            Stream<ProcessHandle> aliveProcesses = ProcessHandle.allProcesses().filter(process -> {
-                return process.isAlive();
-            });
-            String captureTime = this.pauseTime == null ? DateHelper.now() : this.pauseTime;
-            String jsonProcessesArray = processesSnapshotToJsonFormat(aliveProcesses, captureTime);
-            try {
-                this.fileOutputStream.write(jsonProcessesArray.getBytes());
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.out.println("Error al escribir en el archivo de salida");
-                ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
+        while(true){
+            //ProcessRecorder.LOGGER.log(Level.SEVERE, String.valueOf(this.status));
+            if(this.status == RUNNING_STATUS){
+                //ProcessRecorder.LOGGER.log(Level.SEVERE, "ESTOY CORRIENDO");
+                /* Solo los procesos que esten corriendo */
+                Stream<ProcessHandle> aliveProcesses = ProcessHandle.allProcesses().filter(process -> {
+                    return process.isAlive();
+                });
+                String captureTime = this.pauseTime == null ? DateHelper.now() : this.pauseTime;
+                String jsonProcessesArray = processesSnapshotToJsonFormat(aliveProcesses, captureTime);
+                try {
+                    this.fileOutputStream.write(jsonProcessesArray.getBytes());
+                } catch (IOException e) {
+                    ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
+                    /* EN el contexto de ejecución de la captura dentro de MO, esto ocurre cuando se
+                    termina la captura y al mismo tiempo se estaba escribiendo un resultado de captura en el archivo
+                    Hay que analizar la situación. Se intenta implementar un esquema simple de sincronización
+                     */
+                    return;
+                }
+            }
+            else if(this.status == STOPPED_STATUS){
+                try {
+                    this.fileOutputStream.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
+                }
                 return;
             }
-            System.out.println("Archivo de salida escrito correctamente");
         }
     }
 

@@ -8,9 +8,11 @@ import mo.communication.streaming.capture.PluginCaptureListener;
 import mo.core.I18n;
 import mo.core.plugin.Extends;
 import mo.core.plugin.Extension;
+import mo.models.CaptureConfiguration;
 import mo.organization.Configuration;
 import mo.organization.ProjectOrganization;
 import mo.organization.StagePlugin;
+import mo.views.ProcessCaptureConfigurationDialog;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -43,15 +45,21 @@ public class ProcessCapturePlugin implements CaptureProvider{
 
     @Override
     public String getName() {
-        return "Processes";
-        //return this.i18n.s("processCapturePluginDisplayedName");
+        return this.i18n.s("processCapturePluginDisplayedName");
     }
 
     @Override
     public Configuration initNewConfiguration(ProjectOrganization projectOrganization) {
         /* Aqui debemos mostrar la ventana de configuracion, obtener la configuracion
         ingresada por el usuario y agregarla a las configuraciones del plugin */
-        return null;
+        ProcessCaptureConfigurationDialog configDialog = new ProcessCaptureConfigurationDialog();
+        configDialog.showDialog();
+        while(!configDialog.isAccepted()){
+
+        }
+        ProcessCaptureConfiguration configuration = new ProcessCaptureConfiguration(configDialog.getTemporalConfig());
+        this.configurations.add(configuration);
+        return configuration;
     }
 
     @Override
@@ -68,8 +76,7 @@ public class ProcessCapturePlugin implements CaptureProvider{
                 XElement[] pathsX = root.getElements("path");
                 for (XElement pathX : pathsX) {
                     String path = pathX.getString();
-                    ProcessCaptureConfiguration c = new ProcessCaptureConfiguration("");
-                    Configuration config = c.fromFile(new File(file.getParentFile(), path));
+                    Configuration config = ProcessCaptureConfiguration.createFromFile(new File(file.getParentFile(), path));
                     if (config != null) {
                         mc.configurations.add(config);
                     }

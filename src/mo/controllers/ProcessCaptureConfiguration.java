@@ -3,6 +3,7 @@ package mo.controllers;
 import mo.capture.RecordableConfiguration;
 import mo.communication.streaming.capture.PluginCaptureListener;
 import mo.communication.streaming.capture.PluginCaptureSender;
+import mo.models.CaptureConfiguration;
 import mo.organization.Configuration;
 import mo.organization.Participant;
 import mo.organization.ProjectOrganization;
@@ -14,12 +15,13 @@ import java.util.logging.Logger;
 
 public class ProcessCaptureConfiguration implements RecordableConfiguration, PluginCaptureSender {
 
-    private String id;
+    private CaptureConfiguration temporalConfig;
     private ProcessRecorder processRecorder;
     private static final Logger LOGGER = Logger.getLogger(ProcessCaptureConfiguration.class.getName());
 
-    public ProcessCaptureConfiguration(String id){
-        this.id = id;
+
+    public ProcessCaptureConfiguration(CaptureConfiguration temporalConfig) {
+        this.temporalConfig = temporalConfig;
     }
 
     @Override
@@ -89,13 +91,16 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
 
     @Override
     public String getId() {
-        return this.id;
+        return this.temporalConfig.getName();
     }
 
     @Override
     public File toFile(File parent) {
         try {
-            File f = new File(parent, "processes_"+id+".xml");
+            String childFileName = "processes_"+this.temporalConfig.getName()+"_"+
+                    this.temporalConfig.getSelectedFilterId()+"_"+String.valueOf(this.temporalConfig.getCaptureSnapshotRepeatTime())
+                    +".xml";
+            File f = new File(parent, childFileName);
             f.createNewFile();
             return f;
         } catch (IOException ex) {
@@ -107,12 +112,37 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
     @Override
     public Configuration fromFile(File file) {
         String fileName = file.getName();
-        if (fileName.contains("_") && fileName.contains(".")){
-            String newId = fileName.substring(
-                    fileName.indexOf('_') + 1, fileName.lastIndexOf("."));
-            ProcessCaptureConfiguration c = new ProcessCaptureConfiguration(newId);
-            return c;
+        if(!fileName.contains("_") || !fileName.contains(".")){
+            return null;
         }
-        return null;
+        String configData = fileName.substring(0, fileName.lastIndexOf("."));
+        String[] configElements = configData.split("_");
+        String configurationName = configElements[0];
+        int selectedFilterId = Integer.valueOf(configElements[1]);
+        int captureRepeatTime = Integer.valueOf(configElements[2]);
+        CaptureConfiguration auxConfig = new CaptureConfiguration(configurationName, selectedFilterId, captureRepeatTime);
+        return new ProcessCaptureConfiguration(auxConfig);
     }
+
+    /* Metodo auxiliar que es utilizado para crear la configuración desde los archivos relacionados al plugin (que
+    almacenan su info), luego de que
+    MO ha sido cerrado.
+
+    Esto es para que las configuraciones no se pierdan
+     */
+    public static Configuration createFromFile(File file){
+        String fileName = file.getName();
+        if(!fileName.contains("_") || !fileName.contains(".")){
+            return null;
+        }
+        String configData = fileName.substring(0, fileName.lastIndexOf("."));
+        String[] configElements = configData.split("_");
+        /* El elemento 0 es processes*/
+        String configurationName = configElements[1];
+        int selectedFilterId = Integer.valueOf(configElements[2]);
+        int captureRepeatTime = Integer.valueOf(configElements[3]);
+        CaptureConfiguration auxConfig = new CaptureConfiguration(configurationName, selectedFilterId, captureRepeatTime);
+        return new ProcessCaptureConfiguration(auxConfig);
+    }
+
 }
