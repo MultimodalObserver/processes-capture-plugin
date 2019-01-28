@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 
@@ -24,6 +25,7 @@ public class CaptureThread extends Thread {
     private String pauseTime;
     private long captureRepeatMilli;
     private int selectedFilterId;
+    private static final String LINE_SEPARATOR = System.getProperty("line.separator");
 
     public CaptureThread(int status, FileOutputStream fileOutputStream, CaptureConfiguration temporalConfig) {
         this.status = status;
@@ -31,7 +33,6 @@ public class CaptureThread extends Thread {
         this.fileOutputStream = fileOutputStream;
         this.captureRepeatMilli = temporalConfig.getCaptureSnapshotRepeatTime() / 1000;
         this.selectedFilterId = temporalConfig.getSelectedFilterId();
-
     }
 
     public int getStatus() {
@@ -59,9 +60,9 @@ public class CaptureThread extends Thread {
                     return;
                 }
                 String captureTime = this.pauseTime == null ? DateHelper.now() : this.pauseTime;
-                String jsonProcessesArray = processesSnapshotToJsonFormat(processes, captureTime);
+                String jsonProcessesMap = processesSnapshotToJsonFormat(processes, captureTime);
                 try {
-                    this.fileOutputStream.write(jsonProcessesArray.getBytes());
+                    this.fileOutputStream.write(jsonProcessesMap.getBytes());
                 } catch (IOException e) {
                     ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
                     return;
@@ -109,7 +110,8 @@ public class CaptureThread extends Thread {
         Gson gson = new Gson();
         String otherString = "-";
         long otherLong = -1;
-        List<String> jsonStringList= new ArrayList<>();
+        HashMap<String,Object> processesJsonMap= new HashMap<>();
+        List<HashMap<String, Object>> processesList = new ArrayList<>();
         processes.forEach(process -> {
             long pid = process.pid(); // pid del proceso
             String userName = process.info().user().orElse(otherString); //nombre de usuario que abrió el proceso
@@ -137,20 +139,19 @@ public class CaptureThread extends Thread {
             En caso de no poder usar destroy(), se debe destruir a la fuerza con destroyForcibly()
             de la misma API.
             */
-            HashMap<String, Object> jsonMap = new HashMap<>();
-            jsonMap.put("pid", pid);
-            //jsonMap.put("isAlive", isAlive);
-            jsonMap.put("userName", userName);
-            jsonMap.put("startInstant", startInstant);
-            jsonMap.put("totalCpuDuration", totalCpuDuration);
-            jsonMap.put("command", command);
-            jsonMap.put("parentPid", parentPid);
-            jsonMap.put("hasChildren", hasChildren);
-            jsonMap.put("supportsNormalTermination", supportsNormalTermination);
-            jsonMap.put("captureTime", captureTime);
-            String jsonProcessString = gson.toJson(jsonMap);
-            jsonStringList.add(jsonProcessString);
+            HashMap<String, Object> processJsonMap = new HashMap<>();
+            processJsonMap.put("pid", pid);
+            processJsonMap.put("userName", userName);
+            processJsonMap.put("startInstant", startInstant);
+            processJsonMap.put("totalCpuDuration", totalCpuDuration);
+            processJsonMap.put("command", command);
+            processJsonMap.put("parentPid", parentPid);
+            processJsonMap.put("hasChildren", hasChildren);
+            processJsonMap.put("supportsNormalTermination", supportsNormalTermination);
+            processesList.add(processJsonMap);
         });
-        return gson.toJson(jsonStringList);
+        processesJsonMap.put("processes", processesList);
+        processesJsonMap.put("captureTime", captureTime);
+        return gson.toJson(processesJsonMap) + LINE_SEPARATOR;
     }
 }
