@@ -39,7 +39,6 @@ public class ProcessRecorder {
         this.dataListeners = new ArrayList<>();
         this.createOutputFile(stageFolder);
         this.captureThread = new CaptureThread(CaptureThread.RUNNING_STATUS, this.fileOutputStream);
-        this.captureThread.start();
     }
 
     private void createOutputFile(File parent) {
