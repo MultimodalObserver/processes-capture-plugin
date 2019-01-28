@@ -54,8 +54,8 @@ public class ProcessCapturePlugin implements CaptureProvider{
         ingresada por el usuario y agregarla a las configuraciones del plugin */
         ProcessCaptureConfigurationDialog configDialog = new ProcessCaptureConfigurationDialog();
         configDialog.showDialog();
-        while(!configDialog.isAccepted()){
-
+        if(!configDialog.isAccepted()){
+            return null;
         }
         ProcessCaptureConfiguration configuration = new ProcessCaptureConfiguration(configDialog.getTemporalConfig());
         this.configurations.add(configuration);

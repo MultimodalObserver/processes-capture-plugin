@@ -15,17 +15,23 @@ import java.util.logging.Level;
 import java.util.stream.Stream;
 
 public class CaptureThread extends Thread {
+
     private int status;
     private FileOutputStream fileOutputStream;
     public static final int RUNNING_STATUS = 1;
     public static final int PAUSED_STATUS = 2;
     public static final int STOPPED_STATUS = 3;
     private String pauseTime;
+    private long captureRepeatMilli;
+    private int selectedFilterId;
 
-    public CaptureThread(int status, FileOutputStream fileOutputStream) {
+    public CaptureThread(int status, FileOutputStream fileOutputStream, CaptureConfiguration temporalConfig) {
         this.status = status;
         this.pauseTime = null;
         this.fileOutputStream = fileOutputStream;
+        this.captureRepeatMilli = temporalConfig.getCaptureSnapshotRepeatTime() / 1000;
+        this.selectedFilterId = temporalConfig.getSelectedFilterId();
+
     }
 
     public int getStatus() {
@@ -45,24 +51,26 @@ public class CaptureThread extends Thread {
     @Override
     public void run(){
         while(true){
-            //ProcessRecorder.LOGGER.log(Level.SEVERE, String.valueOf(this.status));
+            ProcessRecorder.LOGGER.log(Level.SEVERE, String.valueOf(this.status));
             if(this.status == RUNNING_STATUS){
-                //ProcessRecorder.LOGGER.log(Level.SEVERE, "ESTOY CORRIENDO");
-                /* Solo los procesos que esten corriendo */
-                Stream<ProcessHandle> aliveProcesses = ProcessHandle.allProcesses().filter(process -> {
-                    return process.isAlive();
-                });
+                ProcessRecorder.LOGGER.log(Level.SEVERE, "ESTOY CORRIENDO");
+                Stream<ProcessHandle> processes = applyFilter(this.selectedFilterId);
+                if(processes == null){
+                    return;
+                }
                 String captureTime = this.pauseTime == null ? DateHelper.now() : this.pauseTime;
-                String jsonProcessesArray = processesSnapshotToJsonFormat(aliveProcesses, captureTime);
+                String jsonProcessesArray = processesSnapshotToJsonFormat(processes, captureTime);
                 try {
                     this.fileOutputStream.write(jsonProcessesArray.getBytes());
                 } catch (IOException e) {
                     ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
-                    /* EN el contexto de ejecución de la captura dentro de MO, esto ocurre cuando se
-                    termina la captura y al mismo tiempo se estaba escribiendo un resultado de captura en el archivo
-                    Hay que analizar la situación. Se intenta implementar un esquema simple de sincronización
-                     */
                     return;
+                }
+                try {
+                    Thread.sleep(this.captureRepeatMilli);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
                 }
             }
             else if(this.status == STOPPED_STATUS){
@@ -75,6 +83,26 @@ public class CaptureThread extends Thread {
                 return;
             }
         }
+    }
+
+    private Stream<ProcessHandle> applyFilter(int selectedFilterId){
+        Stream<ProcessHandle> processes = null;
+        switch (selectedFilterId){
+            case ProcessRecorder.ALL_PROCESSES:
+                processes = ProcessHandle.allProcesses();
+                break;
+            case ProcessRecorder.ONLY_RUNNING_PROCESSES:
+                processes = ProcessHandle.allProcesses().filter(process -> {
+                    return process.isAlive();
+                });
+                break;
+            case ProcessRecorder.ONLY_NOT_RUNNING_PROCESSES:
+                processes = ProcessHandle.allProcesses().filter(process -> {
+                    return !process.isAlive();
+                });
+                break;
+        }
+        return processes;
     }
 
     private String processesSnapshotToJsonFormat(Stream<ProcessHandle> processes, String captureTime){

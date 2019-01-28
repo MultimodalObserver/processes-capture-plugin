@@ -24,6 +24,10 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
         this.temporalConfig = temporalConfig;
     }
 
+    public CaptureConfiguration getTemporalConfig() {
+        return temporalConfig;
+    }
+
     @Override
     public void setupRecording(File file, ProjectOrganization projectOrganization, Participant participant) {
         this.processRecorder = new ProcessRecorder(file, projectOrganization, participant,this);
