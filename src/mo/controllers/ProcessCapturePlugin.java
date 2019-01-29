@@ -71,17 +71,16 @@ public class ProcessCapturePlugin implements CaptureProvider{
     public StagePlugin fromFile(File file) {
         if (file.isFile()) {
             try {
-                ProcessCapturePlugin mc = new ProcessCapturePlugin();
+                ProcessCapturePlugin processCapturePlugin = new ProcessCapturePlugin();
                 XElement root = XIO.readUTF(new FileInputStream(file));
                 XElement[] pathsX = root.getElements("path");
                 for (XElement pathX : pathsX) {
                     String path = pathX.getString();
-                    Configuration config = ProcessCaptureConfiguration.createFromFile(new File(file.getParentFile(), path));
-                    if (config != null) {
-                        mc.configurations.add(config);
-                    }
+                    File archive = new File(file.getParentFile(), path);
+                    Configuration config = new ProcessCaptureConfiguration(archive);
+                    processCapturePlugin.configurations.add(config);
                 }
-                return mc;
+                return processCapturePlugin;
             } catch (IOException ex) {
                 logger.log(Level.SEVERE, null, ex);
             }
