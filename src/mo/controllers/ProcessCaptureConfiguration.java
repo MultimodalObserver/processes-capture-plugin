@@ -36,9 +36,7 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
         String[] configElements = configData.split("_");
         /* El elemento 0 es la palabra processes*/
         String configurationName = configElements[1];
-        int selectedFilterId = Integer.valueOf(configElements[2]);
-        int captureRepeatTime = Integer.valueOf(configElements[3]);
-        this.temporalConfig =  new CaptureConfiguration(configurationName, selectedFilterId, captureRepeatTime);
+        this.temporalConfig =  new CaptureConfiguration(configurationName);
     }
 
     public CaptureConfiguration getTemporalConfig() {
@@ -118,9 +116,7 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
     @Override
     public File toFile(File parent) {
         try {
-            String childFileName = "processes_"+this.temporalConfig.getName()+"_"+
-                    this.temporalConfig.getSelectedFilterId()+"_"+String.valueOf(this.temporalConfig.getCaptureSnapshotRepeatTime())
-                    +".xml";
+            String childFileName = "processes_"+this.temporalConfig.getName()+".xml";
             File f = new File(parent, childFileName);
             f.createNewFile();
             return f;
@@ -139,9 +135,7 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
         String configData = fileName.substring(0, fileName.lastIndexOf("."));
         String[] configElements = configData.split("_");
         String configurationName = configElements[0];
-        int selectedFilterId = Integer.valueOf(configElements[1]);
-        int captureRepeatTime = Integer.valueOf(configElements[2]);
-        CaptureConfiguration auxConfig = new CaptureConfiguration(configurationName, selectedFilterId, captureRepeatTime);
+        CaptureConfiguration auxConfig = new CaptureConfiguration(configurationName);
         return new ProcessCaptureConfiguration(auxConfig);
     }
 
