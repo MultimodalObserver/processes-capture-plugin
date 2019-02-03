@@ -61,12 +61,8 @@ public class CaptureThread extends Thread {
     public void run(){
         while(true){
             if(this.status == RUNNING_STATUS || this.status == RESUMED_STATUS){
-                Stream<ProcessHandle> processes = ProcessHandle.allProcesses();
                 /* Capturamos solo los procesos que están corriendo*/
-                processes = processes.filter(ProcessHandle::isAlive);
-                if(processes.count() == 0){
-                    return;
-                }
+                Stream<ProcessHandle> processes = ProcessHandle.allProcesses().filter(ProcessHandle::isAlive);
                 long now = DateHelper.nowMilliseconds();
                 long resumedCaptureTime = this.pauseTime + (now - this.resumeTime);
                 long captureTime = this.resumeTime == 0 ? now : resumedCaptureTime;
