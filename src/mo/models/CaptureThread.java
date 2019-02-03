@@ -22,16 +22,29 @@ public class CaptureThread extends Thread {
     public static final int RUNNING_STATUS = 1;
     public static final int PAUSED_STATUS = 2;
     public static final int STOPPED_STATUS = 3;
-    private String pauseTime;
-    private long captureSeconds;
-    private long pausedSeconds;
+    public static final int RESUMED_STATUS = 4;
+    private static final String CAPTURE_MILLISECONDS_KEY = "captureMilliseconds";
+    private static final String PID_KEY = "pid";
+    private static final String USER_NAME_KEY = "userName";
+    private static final String START_INSTANT_KEY = "startInstant";
+    private static final String TOTAL_CPU_DURATION_KEY = "totalCpuDuration";
+    private static final String COMMAND_KEY = "command";
+    private static final String SUPPORTS_NORMAL_TERMINATION_KEY = "supportsNormalTermination";
+    private static final String PARENT_PID_KEY = "parentPid";
+    private static final String HAS_CHILDREN_KEY = "hasChildren";
+    private static final String PROCESSES_KEY = "processes";
+    private long pauseTime;
+    private long resumeTime;
+    //private long captureSeconds;
+    //private long pausedSeconds;
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
 
     public CaptureThread(int status, FileOutputStream fileOutputStream, CaptureConfiguration temporalConfig) {
         this.status = status;
-        this.pauseTime = null;
-        this.pausedSeconds = 0;
-        this.captureSeconds = 1;
+        this.pauseTime = 0;
+        this.resumeTime = 0;
+        //this.pausedSeconds = 0;
+        //this.captureSeconds = 1;
         this.fileOutputStream = fileOutputStream;
     }
 
@@ -40,13 +53,10 @@ public class CaptureThread extends Thread {
     }
 
     public void setStatus(int status) {
-        if(status != PAUSED_STATUS){
-            this.pauseTime = null;
-            this.pausedSeconds = 0;
-        }
-        else{
-            this.pauseTime = DateHelper.now();
-            this.pausedSeconds = this.captureSeconds;
+        if(status == PAUSED_STATUS){
+            this.pauseTime = DateHelper.nowMilliseconds();
+        } else if(status == RESUMED_STATUS){
+            this.resumeTime = DateHelper.nowMilliseconds();
         }
         this.status = status;
     }
@@ -54,25 +64,30 @@ public class CaptureThread extends Thread {
     @Override
     public void run(){
         while(true){
-            ProcessRecorder.LOGGER.log(Level.SEVERE, String.valueOf(this.status));
-            if(this.status == RUNNING_STATUS){
-                ProcessRecorder.LOGGER.log(Level.SEVERE, "ESTOY CORRIENDO");
+            if(this.status == RUNNING_STATUS || this.status == RESUMED_STATUS){
                 Stream<ProcessHandle> processes = ProcessHandle.allProcesses();
                 if(processes == null){
                     return;
                 }
-                String captureTime = DateHelper.now();//this.pauseTime == null ? DateHelper.now() : this.pauseTime;
-                long captureSeconds = this.pausedSeconds == 0 ? this.captureSeconds : this.pausedSeconds;
-                String jsonProcessesMap = processesSnapshotToJsonFormat(processes, captureTime, captureSeconds);
+                long now = DateHelper.nowMilliseconds();
+                long resumedCaptureTime = this.pauseTime + (now - this.resumeTime);
+                long captureTime = this.resumeTime == 0 ? now : resumedCaptureTime;
+                String jsonProcessesMap = processesSnapshotToJsonFormat(processes, captureTime);
                 try {
                     this.fileOutputStream.write(jsonProcessesMap.getBytes());
-                    this.captureSeconds ++;
                 } catch (IOException e) {
                     ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
                     return;
                 }
             }
-            else if(this.status == STOPPED_STATUS){
+            else if(this.status == PAUSED_STATUS){
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            else if(this.status == STOPPED_STATUS) {
                 try {
                     this.fileOutputStream.close();
                 } catch (IOException e) {
@@ -84,7 +99,7 @@ public class CaptureThread extends Thread {
         }
     }
 
-    private String processesSnapshotToJsonFormat(Stream<ProcessHandle> processes, String captureTime, long captureSeconds){
+    private String processesSnapshotToJsonFormat(Stream<ProcessHandle> processes, long captureTime){
         Gson gson = new Gson();
         String otherString = "-";
         long otherLong = -1;
@@ -118,19 +133,18 @@ public class CaptureThread extends Thread {
             de la misma API.
             */
             HashMap<String, Object> processJsonMap = new HashMap<>();
-            processJsonMap.put("pid", pid);
-            processJsonMap.put("userName", userName);
-            processJsonMap.put("startInstant", startInstant);
-            processJsonMap.put("totalCpuDuration", totalCpuDuration);
-            processJsonMap.put("command", command);
-            processJsonMap.put("parentPid", parentPid);
-            processJsonMap.put("hasChildren", hasChildren);
-            processJsonMap.put("supportsNormalTermination", supportsNormalTermination);
+            processJsonMap.put(PID_KEY, pid);
+            processJsonMap.put(USER_NAME_KEY, userName);
+            processJsonMap.put(START_INSTANT_KEY, startInstant);
+            processJsonMap.put(TOTAL_CPU_DURATION_KEY, totalCpuDuration);
+            processJsonMap.put(COMMAND_KEY, command);
+            processJsonMap.put(PARENT_PID_KEY, parentPid);
+            processJsonMap.put(HAS_CHILDREN_KEY, hasChildren);
+            processJsonMap.put(SUPPORTS_NORMAL_TERMINATION_KEY, supportsNormalTermination);
             processesList.add(processJsonMap);
         });
-        processesJsonMap.put("processes", processesList);
-        processesJsonMap.put("captureDateTime", captureTime);
-        processesJsonMap.put("captureSeconds", captureSeconds);
+        processesJsonMap.put(PROCESSES_KEY, processesList);
+        processesJsonMap.put(CAPTURE_MILLISECONDS_KEY, captureTime);
         return gson.toJson(processesJsonMap) + LINE_SEPARATOR;
     }
 }

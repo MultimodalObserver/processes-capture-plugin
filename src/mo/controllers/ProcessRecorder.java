@@ -82,7 +82,7 @@ public class ProcessRecorder {
 
 
     public void resume(){
-        this.captureThread.setStatus(CaptureThread.RUNNING_STATUS);
+        this.captureThread.setStatus(CaptureThread.RESUMED_STATUS);
     }
 
     public void cancel(){

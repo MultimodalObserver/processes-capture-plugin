@@ -26,4 +26,8 @@ public class DateHelper {
         Date date=calendar.getTime();
         return date;
     }
+
+    public static  long nowMilliseconds(){
+        return nowDate().getTime();
+    }
 }
