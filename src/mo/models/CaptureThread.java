@@ -35,16 +35,12 @@ public class CaptureThread extends Thread {
     private static final String PROCESSES_KEY = "processes";
     private long pauseTime;
     private long resumeTime;
-    //private long captureSeconds;
-    //private long pausedSeconds;
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
 
     public CaptureThread(int status, FileOutputStream fileOutputStream, CaptureConfiguration temporalConfig) {
         this.status = status;
         this.pauseTime = 0;
         this.resumeTime = 0;
-        //this.pausedSeconds = 0;
-        //this.captureSeconds = 1;
         this.fileOutputStream = fileOutputStream;
     }
 
@@ -66,7 +62,9 @@ public class CaptureThread extends Thread {
         while(true){
             if(this.status == RUNNING_STATUS || this.status == RESUMED_STATUS){
                 Stream<ProcessHandle> processes = ProcessHandle.allProcesses();
-                if(processes == null){
+                /* Capturamos solo los procesos que están corriendo*/
+                processes = processes.filter(ProcessHandle::isAlive);
+                if(processes.count() == 0){
                     return;
                 }
                 long now = DateHelper.nowMilliseconds();
@@ -81,6 +79,9 @@ public class CaptureThread extends Thread {
                 }
             }
             else if(this.status == PAUSED_STATUS){
+                /* Si se ha pausado la captura, vamos durmiendo el Thread para que este "reaccione" de vez en cuando
+                y no deje de ser considerado por le procesador al momento de la planificación de los procesos
+                 */
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
