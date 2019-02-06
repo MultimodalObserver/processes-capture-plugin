@@ -38,7 +38,7 @@ public class ProcessRecorder {
         this.captureConfigurationController = captureConfigurationController;
         this.dataListeners = new ArrayList<>();
         this.createOutputFile(stageFolder);
-        this.captureThread = new CaptureThread(CaptureThread.RUNNING_STATUS, this.fileOutputStream, this.captureConfigurationController.getTemporalConfig());
+        this.captureThread = new CaptureThread(CaptureThread.RUNNING_STATUS, this);
     }
 
     private void createOutputFile(File parent) {
@@ -101,4 +101,15 @@ public class ProcessRecorder {
         this.dataListeners.remove(pluginCaptureListener);
     }
 
+    public FileOutputStream getFileOutputStream() {
+        return fileOutputStream;
+    }
+
+    public List<PluginCaptureListener> getDataListeners() {
+        return dataListeners;
+    }
+
+    public ProcessCaptureConfiguration getCaptureConfigurationController() {
+        return captureConfigurationController;
+    }
 }

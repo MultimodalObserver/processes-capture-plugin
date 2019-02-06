@@ -1,6 +1,8 @@
 package mo.models;
 
 import com.google.gson.Gson;
+import mo.communication.streaming.capture.CaptureEvent;
+import mo.communication.streaming.capture.PluginCaptureListener;
 import mo.controllers.ProcessRecorder;
 import mo.utilities.DateHelper;
 
@@ -18,7 +20,6 @@ import java.util.stream.Stream;
 public class CaptureThread extends Thread {
 
     private int status;
-    private FileOutputStream fileOutputStream;
     public static final int RUNNING_STATUS = 1;
     public static final int PAUSED_STATUS = 2;
     public static final int STOPPED_STATUS = 3;
@@ -36,12 +37,13 @@ public class CaptureThread extends Thread {
     private long pauseTime;
     private long resumeTime;
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
+    private ProcessRecorder recorder;
 
-    public CaptureThread(int status, FileOutputStream fileOutputStream, CaptureConfiguration temporalConfig) {
+    public CaptureThread(int status, ProcessRecorder recorder) {
         this.status = status;
         this.pauseTime = 0;
         this.resumeTime = 0;
-        this.fileOutputStream = fileOutputStream;
+        this.recorder = recorder;
     }
 
     public int getStatus() {
@@ -68,7 +70,14 @@ public class CaptureThread extends Thread {
                 long captureTime = this.resumeTime == 0 ? now : resumedCaptureTime;
                 String jsonProcessesMap = processesSnapshotToJsonFormat(processes, captureTime);
                 try {
-                    this.fileOutputStream.write(jsonProcessesMap.getBytes());
+                    this.recorder.getFileOutputStream().write(jsonProcessesMap.getBytes());
+                    if(this.recorder.getDataListeners() != null){
+                        CaptureEvent captureEvent = new CaptureEvent(this.recorder.getCaptureConfigurationController().getTemporalConfig().getName(),
+                                this.recorder.getClass().getName(), jsonProcessesMap);
+                        for(PluginCaptureListener dataListener: this.recorder.getDataListeners()){
+                            dataListener.onDataReceived(this,captureEvent);
+                        }
+                    }
                 } catch (IOException e) {
                     ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
                     return;
@@ -86,7 +95,7 @@ public class CaptureThread extends Thread {
             }
             else if(this.status == STOPPED_STATUS) {
                 try {
-                    this.fileOutputStream.close();
+                    this.recorder.getFileOutputStream().close();
                 } catch (IOException e) {
                     e.printStackTrace();
                     ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
