@@ -1,5 +1,6 @@
-package mo.controllers;
+package mo;
 
+import mo.communication.streaming.capture.CaptureConfig;
 import mo.models.CaptureThread;
 import mo.utilities.DateHelper;
 import mo.communication.streaming.capture.PluginCaptureListener;
@@ -91,7 +92,13 @@ public class ProcessRecorder {
     }
 
     public void subscribeListener(PluginCaptureListener pluginCaptureListener){
+        if(this.dataListeners.contains(pluginCaptureListener)){
+            return;
+        }
         this.dataListeners.add(pluginCaptureListener);
+        CaptureConfig initialRemoteCaptureConfiguration = new CaptureConfig(ProcessRecorder.class.getName(),
+                this.captureConfigurationController.getId(), null);
+        pluginCaptureListener.setInitConfiguration(this, initialRemoteCaptureConfiguration);
     }
 
     public void unsubscribeListener(PluginCaptureListener pluginCaptureListener){

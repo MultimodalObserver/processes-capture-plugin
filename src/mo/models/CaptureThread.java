@@ -3,7 +3,7 @@ package mo.models;
 import com.google.gson.Gson;
 import mo.communication.streaming.capture.CaptureEvent;
 import mo.communication.streaming.capture.PluginCaptureListener;
-import mo.controllers.ProcessRecorder;
+import mo.ProcessRecorder;
 import mo.utilities.DateHelper;
 
 import java.io.FileOutputStream;
@@ -72,8 +72,8 @@ public class CaptureThread extends Thread {
                 try {
                     this.recorder.getFileOutputStream().write(jsonProcessesMap.getBytes());
                     if(this.recorder.getDataListeners() != null){
-                        CaptureEvent captureEvent = new CaptureEvent(this.recorder.getCaptureConfigurationController().getTemporalConfig().getName(),
-                                this.recorder.getClass().getName(), jsonProcessesMap);
+                        CaptureEvent captureEvent = new CaptureEvent(this.recorder.getCaptureConfigurationController().getId(),
+                                ProcessRecorder.class.getName(), jsonProcessesMap);
                         for(PluginCaptureListener dataListener: this.recorder.getDataListeners()){
                             dataListener.onDataReceived(this,captureEvent);
                         }

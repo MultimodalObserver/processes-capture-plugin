@@ -1,4 +1,4 @@
-package mo.controllers;
+package mo;
 
 import mo.capture.RecordableConfiguration;
 import mo.communication.streaming.capture.PluginCaptureListener;

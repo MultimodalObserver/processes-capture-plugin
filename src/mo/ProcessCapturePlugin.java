@@ -1,4 +1,4 @@
-package mo.controllers;
+package mo;
 
 
 import bibliothek.util.xml.XElement;
@@ -8,7 +8,6 @@ import mo.communication.streaming.capture.PluginCaptureListener;
 import mo.core.I18n;
 import mo.core.plugin.Extends;
 import mo.core.plugin.Extension;
-import mo.models.CaptureConfiguration;
 import mo.organization.Configuration;
 import mo.organization.ProjectOrganization;
 import mo.organization.StagePlugin;
