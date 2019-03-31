@@ -1,4 +1,4 @@
-package mo.models;
+package mo.capture.process.plugin.models;
 
 /* Clase POJO para encapsular los datos de configuración del plugin ingresados por el usuario*/
 public class CaptureConfiguration {

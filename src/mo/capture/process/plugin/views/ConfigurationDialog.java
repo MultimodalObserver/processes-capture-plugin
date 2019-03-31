@@ -1,20 +1,15 @@
-package mo.views;
+package mo.capture.process.plugin.views;
 
-import mo.controllers.ProcessRecorder;
 import mo.core.ui.Utils;
-import mo.models.CaptureConfiguration;
-import mo.models.CustomComboBoxItem;
+import mo.capture.process.plugin.models.CaptureConfiguration;
 import mo.core.I18n;
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Vector;
 
-public class ProcessCaptureConfigurationDialog extends JDialog{
+public class ConfigurationDialog extends JDialog{
 
     private CaptureConfiguration temporalConfig;
     private boolean accepted;
@@ -25,11 +20,11 @@ public class ProcessCaptureConfigurationDialog extends JDialog{
 
     private I18n i18n;
 
-    public ProcessCaptureConfigurationDialog(){
+    public ConfigurationDialog(){
         super(null,"", Dialog.ModalityType.APPLICATION_MODAL);
         this.temporalConfig = null;
         this.accepted = false;
-        this.i18n = new I18n(ProcessCaptureConfigurationDialog.class);
+        this.i18n = new I18n(ConfigurationDialog.class);
         this.setTitle(this.i18n.s("configurationFrameTitleText"));
         this.configurationNameLabel = new JLabel(this.i18n.s("configurationNameLabelText"));
         this.configurationNameTextField = new JTextField();
@@ -69,18 +64,18 @@ public class ProcessCaptureConfigurationDialog extends JDialog{
         this.saveConfigButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                ProcessCaptureConfigurationDialog.this.configurationNameErrorLabel.setVisible(false);
-                String configurationName = ProcessCaptureConfigurationDialog.this.configurationNameTextField.getText();
+                ConfigurationDialog.this.configurationNameErrorLabel.setVisible(false);
+                String configurationName = ConfigurationDialog.this.configurationNameTextField.getText();
                 if(configurationName.isEmpty()){
-                    ProcessCaptureConfigurationDialog.this.configurationNameErrorLabel.setVisible(true);
+                    ConfigurationDialog.this.configurationNameErrorLabel.setVisible(true);
                     return;
                 }
-                ProcessCaptureConfigurationDialog.this.setVisible(false);
-                ProcessCaptureConfigurationDialog.this.dispose();
-                ProcessCaptureConfigurationDialog.this.temporalConfig = new CaptureConfiguration(configurationName);
-                ProcessCaptureConfigurationDialog.this.accepted = true;
-                ProcessCaptureConfigurationDialog.this.setVisible(false);
-                ProcessCaptureConfigurationDialog.this.dispose();
+                ConfigurationDialog.this.setVisible(false);
+                ConfigurationDialog.this.dispose();
+                ConfigurationDialog.this.temporalConfig = new CaptureConfiguration(configurationName);
+                ConfigurationDialog.this.accepted = true;
+                ConfigurationDialog.this.setVisible(false);
+                ConfigurationDialog.this.dispose();
             }
         });
     }

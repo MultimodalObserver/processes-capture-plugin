@@ -1,9 +1,9 @@
-package mo;
+package mo.capture.process.plugin;
 
 import mo.capture.RecordableConfiguration;
 import mo.communication.streaming.capture.PluginCaptureListener;
 import mo.communication.streaming.capture.PluginCaptureSender;
-import mo.models.CaptureConfiguration;
+import mo.capture.process.plugin.models.CaptureConfiguration;
 import mo.organization.Configuration;
 import mo.organization.Participant;
 import mo.organization.ProjectOrganization;
@@ -85,7 +85,7 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
 
     @Override
     public String getCreator() {
-        return ProcessCaptureConfiguration.class.getName();
+        return ProcessRecorder.class.getName();
     }
 
     @Override

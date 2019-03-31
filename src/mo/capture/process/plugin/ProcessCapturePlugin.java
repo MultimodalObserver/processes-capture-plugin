@@ -1,4 +1,4 @@
-package mo;
+package mo.capture.process.plugin;
 
 
 import bibliothek.util.xml.XElement;
@@ -11,7 +11,7 @@ import mo.core.plugin.Extension;
 import mo.organization.Configuration;
 import mo.organization.ProjectOrganization;
 import mo.organization.StagePlugin;
-import mo.views.ProcessCaptureConfigurationDialog;
+import mo.capture.process.plugin.views.ConfigurationDialog;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -51,7 +51,7 @@ public class ProcessCapturePlugin implements CaptureProvider{
     public Configuration initNewConfiguration(ProjectOrganization projectOrganization) {
         /* Aqui debemos mostrar la ventana de configuracion, obtener la configuracion
         ingresada por el usuario y agregarla a las configuraciones del plugin */
-        ProcessCaptureConfigurationDialog configDialog = new ProcessCaptureConfigurationDialog();
+        ConfigurationDialog configDialog = new ConfigurationDialog();
         configDialog.showDialog();
         if(!configDialog.isAccepted()){
             return null;
