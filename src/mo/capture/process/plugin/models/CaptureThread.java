@@ -107,13 +107,13 @@ public class CaptureThread extends Thread {
                 long now = DateHelper.nowMilliseconds();
                 long resumedCaptureTime = this.pauseTime + (now - this.resumeTime);
                 long captureTime = this.resumeTime == 0 ? now : resumedCaptureTime;
-                //String jsonProcessesMap = processesSnapshotToJsonFormat(processes, captureTime);
-                String processesSnapshotToCSV = processesSnapshotToCSV(processes, captureTime);
+                String jsonProcessesMap = processesSnapshotToJsonFormat(processes, captureTime);
+                //String processesSnapshotToCSV = processesSnapshotToCSV(processes, captureTime);
                 try {
-                    this.recorder.getFileOutputStream().write(processesSnapshotToCSV.getBytes());
+                    this.recorder.getFileOutputStream().write(jsonProcessesMap.getBytes());
                     if(this.recorder.getDataListeners() != null){
                         CaptureEvent captureEvent = new CaptureEvent(this.recorder.getCaptureConfigurationController().getId(),
-                                this.recorder.getClass().getName(), 123);
+                                this.recorder.getClass().getName(), jsonProcessesMap);
                         for(PluginCaptureListener dataListener: this.recorder.getDataListeners()){
                             dataListener.onDataReceived(this.recorder,captureEvent);
                         }
