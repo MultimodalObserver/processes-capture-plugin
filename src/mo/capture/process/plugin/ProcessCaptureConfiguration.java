@@ -9,6 +9,7 @@ import mo.organization.Participant;
 import mo.organization.ProjectOrganization;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -33,10 +34,12 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
     public ProcessCaptureConfiguration(File file){
         String fileName = file.getName();
         String configData = fileName.substring(0, fileName.lastIndexOf("."));
+        /* Aqui deberíamos leer del archivo xml, y no del nombre*/
         String[] configElements = configData.split("_");
         /* El elemento 0 es la palabra processes*/
         String configurationName = configElements[1];
-        this.temporalConfig =  new CaptureConfiguration(configurationName);
+        int snapshotCaptureTime = Integer.parseInt(configElements[2]);
+        this.temporalConfig =  new CaptureConfiguration(configurationName, snapshotCaptureTime);
     }
 
     public CaptureConfiguration getTemporalConfig() {
@@ -116,9 +119,13 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
     @Override
     public File toFile(File parent) {
         try {
-            String childFileName = "processes_"+this.temporalConfig.getName()+".xml";
+            String childFileName = "processes_"+this.temporalConfig.getName()+
+                    "_"+ this.temporalConfig.getSnapshotCaptureTime() +".xml";
             File f = new File(parent, childFileName);
             f.createNewFile();
+            /* AQUI SE DEBERIA ESCRIBIR EL CONTENIDO EN XML,
+            NO USAR EL NOMBRE DEL ARCHIVO PARA ALMACENAR VALORES DE CONFIGURACION
+             */
             return f;
         } catch (IOException ex) {
             LOGGER.log(Level.SEVERE, null, ex);
@@ -135,7 +142,8 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
         String configData = fileName.substring(0, fileName.lastIndexOf("."));
         String[] configElements = configData.split("_");
         String configurationName = configElements[0];
-        CaptureConfiguration auxConfig = new CaptureConfiguration(configurationName);
+        int snapshotCaptureTime = Integer.parseInt(configElements[1]);
+        CaptureConfiguration auxConfig = new CaptureConfiguration(configurationName, snapshotCaptureTime);
         return new ProcessCaptureConfiguration(auxConfig);
     }
 
