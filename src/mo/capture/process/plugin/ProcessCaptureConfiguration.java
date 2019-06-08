@@ -1,6 +1,11 @@
 package mo.capture.process.plugin;
 
+import com.google.gson.Gson;
 import mo.capture.RecordableConfiguration;
+import mo.capture.process.plugin.models.ProcessRequest;
+import mo.communication.ConnectionListener;
+import mo.communication.PetitionResponse;
+import mo.communication.ServerConnection;
 import mo.communication.streaming.capture.PluginCaptureListener;
 import mo.communication.streaming.capture.PluginCaptureSender;
 import mo.capture.process.plugin.models.CaptureConfiguration;
@@ -9,16 +14,18 @@ import mo.organization.Participant;
 import mo.organization.ProjectOrganization;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ProcessCaptureConfiguration implements RecordableConfiguration, PluginCaptureSender {
+public class ProcessCaptureConfiguration implements RecordableConfiguration, PluginCaptureSender, ConnectionListener {
 
     private CaptureConfiguration temporalConfig;
     private ProcessRecorder processRecorder;
     private static final Logger LOGGER = Logger.getLogger(ProcessCaptureConfiguration.class.getName());
+    private final Gson gson = new Gson();
 
 
     public ProcessCaptureConfiguration(CaptureConfiguration temporalConfig) {
@@ -147,4 +154,45 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
         return new ProcessCaptureConfiguration(auxConfig);
     }
 
+
+    @Override
+    public void onMessageReceived(Object o, PetitionResponse petitionResponse) {
+        System.out.println("LLEGO MENSAJE");
+        if(!petitionResponse.getType().equals("procesos") || petitionResponse.getHashMap() == null){
+            return;
+        }
+        System.out.println("ES DEL TIPO QUE ESPERABA");
+        ProcessRequest processRequest = this.gson.fromJson((String) petitionResponse.getHashMap().get("data"), ProcessRequest.class);
+        Optional<ProcessHandle> process = ProcessHandle.of(processRequest.getSelectedProcessPID());
+        System.out.println("OBTUVE EL OPCIONAL");
+        if(process.isEmpty()){
+            //Mensaje!!
+            System.out.println("OPCIONAL VACIO");
+            this.sendMessage("Ya no existe el proceso con ese PID");
+        }
+        else{
+            System.out.println("LLEGUE AL ELSE");
+            if(processRequest.getAction().equals("destroy")){
+                boolean destroyed = process.get().destroyForcibly();
+                System.out.println("INTENTANDO DESTRUIR PROCESO");
+                if(!destroyed){
+                    //Mensaje de que el proceso no pudo ser destruido!!
+                    System.out.println("NO SE PUDO DESTRUIR");
+                    this.sendMessage("El proceso no pudo ser destruido");
+                    return;
+                }
+                //Mensaje de que se destruyo el proceso
+                System.out.println("PROCESO DESTRUIDO");
+                this.sendMessage("El proceso fue destruido");
+            }
+        }
+    }
+
+    private void sendMessage(String message){
+        HashMap<String, Object> data = new HashMap<>();
+        data.put("actionResponse", message);
+        PetitionResponse petitionResponse = new PetitionResponse("procesos", data);
+        ServerConnection.getInstance().notifyListeners(this, petitionResponse);
+        System.out.println("Envie mensaje");
+    }
 }

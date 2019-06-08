@@ -38,6 +38,7 @@ public class ConfigurationDialog extends JDialog{
         this.snapshotCaptureTimeLabel = new JLabel("snapshotCaptureTimeLabelText");
         this.snapshotCaptureTimeTextField = new JTextField();
         this.snapshotCaptureTimeErrorLabel = new JLabel();
+        this.snapshotCaptureTimeErrorLabel.setVisible(false);
         this.centerComponents();
         this.addComponents();
         this.addActionListeners();
@@ -56,6 +57,9 @@ public class ConfigurationDialog extends JDialog{
         contentPane.add(this.configurationNameLabel);
         contentPane.add(this.configurationNameTextField);
         contentPane.add(this.configurationNameErrorLabel);
+        contentPane.add(this.snapshotCaptureTimeLabel);
+        contentPane.add(this.snapshotCaptureTimeTextField);
+        contentPane.add(this.snapshotCaptureTimeErrorLabel);
         contentPane.add(this.saveConfigButton);
     }
 
