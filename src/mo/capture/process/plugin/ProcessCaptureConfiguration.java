@@ -3,9 +3,8 @@ package mo.capture.process.plugin;
 import com.google.gson.Gson;
 import mo.capture.RecordableConfiguration;
 import mo.capture.process.plugin.models.ProcessRequest;
-import mo.communication.ConnectionListener;
-import mo.communication.PetitionResponse;
-import mo.communication.ServerConnection;
+import mo.capture.process.util.MessageSender;
+import mo.communication.*;
 import mo.communication.streaming.capture.PluginCaptureListener;
 import mo.communication.streaming.capture.PluginCaptureSender;
 import mo.capture.process.plugin.models.CaptureConfiguration;
@@ -15,7 +14,10 @@ import mo.organization.ProjectOrganization;
 
 import java.io.File;
 import java.io.IOException;
+import java.rmi.Remote;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -26,10 +28,18 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
     private ProcessRecorder processRecorder;
     private static final Logger LOGGER = Logger.getLogger(ProcessCaptureConfiguration.class.getName());
     private final Gson gson = new Gson();
+    private List<ConnectionListener> listenerList;
+    private static final String MESSAGE_ERROR_KEY = "error";
+    private static final String MESSAGE_SUCCESS_KEY = "success";
+
+    public ProcessCaptureConfiguration(){
+
+    }
 
 
     public ProcessCaptureConfiguration(CaptureConfiguration temporalConfig) {
         this.temporalConfig = temporalConfig;
+        this.listenerList = new ArrayList<>();
     }
 
     /* Constructor que es utilizado para crear la configuración desde los archivos relacionados al plugin (que
@@ -47,6 +57,7 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
         String configurationName = configElements[1];
         int snapshotCaptureTime = Integer.parseInt(configElements[2]);
         this.temporalConfig =  new CaptureConfiguration(configurationName, snapshotCaptureTime);
+        this.listenerList = new ArrayList<>();
     }
 
     public CaptureConfiguration getTemporalConfig() {
@@ -163,12 +174,19 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
         }
         System.out.println("ES DEL TIPO QUE ESPERABA");
         ProcessRequest processRequest = this.gson.fromJson((String) petitionResponse.getHashMap().get("data"), ProcessRequest.class);
-        Optional<ProcessHandle> process = ProcessHandle.of(processRequest.getSelectedProcessPID());
+        Optional<ProcessHandle> process;
+        try{
+            process = ProcessHandle.of(processRequest.getSelectedProcessPID());
+        }
+        catch(NullPointerException e){
+            return;
+        }
         System.out.println("OBTUVE EL OPCIONAL");
         if(process.isEmpty()){
             //Mensaje!!
             System.out.println("OPCIONAL VACIO");
-            this.sendMessage("Ya no existe el proceso con ese PID");
+            MessageSender.sendMessage(MESSAGE_ERROR_KEY,
+                    "Ya no existe el proceso con ese PID");
         }
         else{
             System.out.println("LLEGUE AL ELSE");
@@ -178,21 +196,16 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
                 if(!destroyed){
                     //Mensaje de que el proceso no pudo ser destruido!!
                     System.out.println("NO SE PUDO DESTRUIR");
-                    this.sendMessage("El proceso no pudo ser destruido");
+                    MessageSender.sendMessage(MESSAGE_ERROR_KEY,
+                            "El proceso no pudo ser destruido");
                     return;
                 }
                 //Mensaje de que se destruyo el proceso
                 System.out.println("PROCESO DESTRUIDO");
-                this.sendMessage("El proceso fue destruido");
+                MessageSender.sendMessage(MESSAGE_SUCCESS_KEY,
+                        "El proceso fue destruido");
             }
         }
     }
 
-    private void sendMessage(String message){
-        HashMap<String, Object> data = new HashMap<>();
-        data.put("actionResponse", message);
-        PetitionResponse petitionResponse = new PetitionResponse("procesos", data);
-        ServerConnection.getInstance().notifyListeners(this, petitionResponse);
-        System.out.println("Envie mensaje");
-    }
 }

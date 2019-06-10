@@ -4,6 +4,8 @@ package mo.capture.process.plugin;
 import bibliothek.util.xml.XElement;
 import bibliothek.util.xml.XIO;
 import mo.capture.CaptureProvider;
+import mo.communication.CommunicationConfiguration;
+import mo.communication.CommunicationProvider1;
 import mo.communication.streaming.capture.PluginCaptureListener;
 import mo.core.I18n;
 import mo.core.plugin.Extends;
@@ -29,7 +31,7 @@ import java.util.logging.Logger;
         }
 )
 
-public class ProcessCapturePlugin implements CaptureProvider{
+public class ProcessCapturePlugin implements CaptureProvider, CommunicationProvider1 {
 
     private static final Logger logger = Logger.getLogger(ProcessCapturePlugin.class.getName());
     private I18n i18n;
@@ -45,6 +47,11 @@ public class ProcessCapturePlugin implements CaptureProvider{
     @Override
     public String getName() {
         return this.i18n.s("processCapturePluginDisplayedName");
+    }
+
+    @Override
+    public CommunicationConfiguration initNewConfiguration(String s) {
+        return null;
     }
 
     @Override

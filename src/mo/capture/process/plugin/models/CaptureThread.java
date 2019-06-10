@@ -1,19 +1,18 @@
 package mo.capture.process.plugin.models;
 
 import com.google.gson.Gson;
+import mo.capture.process.util.MessageSender;
 import mo.communication.streaming.capture.CaptureEvent;
 import mo.communication.streaming.capture.PluginCaptureListener;
 import mo.capture.process.plugin.ProcessRecorder;
-import mo.capture.process.utilities.DateHelper;
+import mo.capture.process.util.DateHelper;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 
@@ -34,6 +33,7 @@ public class CaptureThread extends Thread {
     private static final String PARENT_PID_KEY = "parentPid";
     private static final String HAS_CHILDREN_KEY = "hasChildren";
     private static final String PROCESSES_KEY = "processes";
+    private static final String DATA_KEY = "data";
     private long pauseTime;
     private long resumeTime;
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
@@ -72,13 +72,14 @@ public class CaptureThread extends Thread {
                 //String processesSnapshotToCSV = processesSnapshotToCSV(processes, captureTime);
                 try {
                     this.recorder.getFileOutputStream().write(jsonProcessesMap.getBytes());
-                    if(this.recorder.getDataListeners() != null){
-                        CaptureEvent captureEvent = new CaptureEvent(this.recorder.getCaptureConfigurationController().getId(),
+                    MessageSender.sendMessage(DATA_KEY, jsonProcessesMap);
+                    /*if(this.recorder.getDataListeners() != null){
+                        *//*CaptureEvent captureEvent = new CaptureEvent(this.recorder.getCaptureConfigurationController().getId(),
                                 this.recorder.getClass().getName(), jsonProcessesMap);
                         for(PluginCaptureListener dataListener: this.recorder.getDataListeners()){
                             dataListener.onDataReceived(this.recorder,captureEvent);
-                        }
-                    }
+                        }*//*
+                    }*/
                 } catch (IOException e) {
                     ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
                     return;

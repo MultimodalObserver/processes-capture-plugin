@@ -1,4 +1,4 @@
-package mo.capture.process.utilities;
+package mo.capture.process.util;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;

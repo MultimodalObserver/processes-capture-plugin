@@ -2,7 +2,7 @@ package mo.capture.process.plugin;
 
 import mo.communication.streaming.capture.CaptureConfig;
 import mo.capture.process.plugin.models.CaptureThread;
-import mo.capture.process.utilities.DateHelper;
+import mo.capture.process.util.DateHelper;
 import mo.communication.streaming.capture.PluginCaptureListener;
 import mo.organization.FileDescription;
 import mo.organization.Participant;
@@ -26,7 +26,7 @@ public class ProcessRecorder {
     private File outputFile;
     private FileOutputStream fileOutputStream;
     private FileDescription fileDescription;
-    private static final String OUTPUT_FILE_EXTENSION = ".csv";
+    private static final String OUTPUT_FILE_EXTENSION = ".json";
     private List<PluginCaptureListener> dataListeners;
     private CaptureThread captureThread;
     public static final Logger LOGGER = Logger.getLogger(ProcessRecorder.class.getName());
