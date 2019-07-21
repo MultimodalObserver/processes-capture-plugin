@@ -26,24 +26,17 @@ public class CaptureThread extends Thread {
     public static final int PAUSED_STATUS = 2;
     public static final int STOPPED_STATUS = 3;
     public static final int RESUMED_STATUS = 4;
-    private static final String CAPTURE_MILLISECONDS_KEY = "captureMilliseconds";
-    private static final String PID_KEY = "pid";
-    private static final String USER_NAME_KEY = "userName";
-    private static final String START_INSTANT_KEY = "startInstant";
-    private static final String TOTAL_CPU_DURATION_KEY = "totalCpuDuration";
-    private static final String COMMAND_KEY = "command";
-    private static final String SUPPORTS_NORMAL_TERMINATION_KEY = "supportsNormalTermination";
-    private static final String PARENT_PID_KEY = "parentPid";
-    private static final String HAS_CHILDREN_KEY = "hasChildren";
-    private static final String PROCESSES_KEY = "processes";
+    public static final String OTHER_STRING = "-";
+    public static final long OTHER_LONG = -1;
     private long pauseTime;
     private long resumeTime;
-    private static final String LINE_SEPARATOR = System.getProperty("line.separator");
     private int sleepTime;
     private FileOutputStream fileOutputStream;
     private String outputFormat;
     public static final String CSV_FORMAT = "csv";
     public static final String JSON_FORMAT = "json";
+    public static final String CSV_HEADERS = "pid,captureTime,userName,startInstant,totalCpuDuration,command,supportsNormalTermination,parentPid,hasChildren";
+    private final Gson gson;
 
     public CaptureThread(int status, FileOutputStream fileOutputStream,  int sleepTime, String outputFormat) {
         this.status = status;
@@ -52,6 +45,7 @@ public class CaptureThread extends Thread {
         this.sleepTime = sleepTime;
         this.fileOutputStream = fileOutputStream;
         this.outputFormat = outputFormat;
+        this.gson = new Gson();
     }
 
     public int getStatus() {
@@ -76,18 +70,11 @@ public class CaptureThread extends Thread {
                 long now = DateHelper.nowMilliseconds();
                 long resumedCaptureTime = this.pauseTime + (now - this.resumeTime);
                 long captureTime = this.resumeTime == 0 ? now : resumedCaptureTime;
-                String processesMap = this.outputFormat.equals("csv") ? this.processesSnapshotToCSV(processes, captureTime) :
+                String processesData = this.outputFormat.equals(CSV_FORMAT) ? this.processesSnapshotToCSV(processes, captureTime) :
                         processesSnapshotToJsonFormat(processes, captureTime);
                 try {
-                    this.fileOutputStream.write(processesMap.getBytes());
-                    MessageSender.sendMessage(ProcessCaptureConfiguration.MESSAGE_CONTENT_KEY, processesMap);
-                    /*if(this.recorder.getDataListeners() != null){
-                        *//*CaptureEvent captureEvent = new CaptureEvent(this.recorder.getCaptureConfigurationController().getId(),
-                                this.recorder.getClass().getName(), jsonProcessesMap);
-                        for(PluginCaptureListener dataListener: this.recorder.getDataListeners()){
-                            dataListener.onDataReceived(this.recorder,captureEvent);
-                        }*//*
-                    }*/
+                    this.fileOutputStream.write(processesData.getBytes());
+                    MessageSender.sendMessage(ProcessCaptureConfiguration.MESSAGE_CONTENT_KEY, processesData);
                 } catch (IOException e) {
                     ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
                     return;
@@ -117,94 +104,26 @@ public class CaptureThread extends Thread {
     }
 
     private String processesSnapshotToJsonFormat(Stream<ProcessHandle> processes, long captureTime){
-        Gson gson = new Gson();
-        String otherString = "-";
-        long otherLong = -1;
-        HashMap<String,Object> processesJsonMap= new HashMap<>();
-        List<HashMap<String, Object>> processesList = new ArrayList<>();
+        List<Process> processesList = new ArrayList<>();
         processes.forEach(process -> {
-            long pid = process.pid(); // pid del proceso
-            String userName = process.info().user().orElse(otherString); //nombre de usuario que abrió el proceso
-            String startInstant = process.info().startInstant().orElse(Instant.MIN).toString(); /* Instante de tiempo
-            en el que se abrió el proceso */
-            long totalCpuDuration = process.info().totalCpuDuration().orElse(Duration.ZERO).toMillis(); /* Duración en milisegundos
-            del proceso */
-            String command = process.info().command().orElse(otherString); //comando que levanta el proceso
-            long parentPid = process.parent().isPresent() ? process.parent().get().pid() : otherLong; /*
-            pid del padre si es que tiene */
-            boolean hasChildren = process.children().count() != 0;
-            /* Una cosa es el  momento en que se tomó el snapshot de procesos y otra el momento cuando se esta
-             consultando su estado, por lo que puede ser que un proceso ya no este vivo
-            al momento de consultar su estado. Lo mismo pasa cuando se requiera rearmar el ProcessHandle
-            usando el metodo of(pid proceso)!!!!
-             */
-            /*
-            boolean isAlive = process.isAlive(); //estado del proceso, sujeto a lo anterior
-             incluir timestamp de cuando se consultó el estado del proceso??
-            útil para métricas
-             */
-            boolean supportsNormalTermination = process.supportsNormalTermination(); /* indica si el proceso puede destruirse
-            usando el método destroy() de la API de procesos de Java (interfaz ProcessHandle)
-
-            En caso de no poder usar destroy(), se debe destruir a la fuerza con destroyForcibly()
-            de la misma API.
-            */
-            HashMap<String, Object> processJsonMap = new HashMap<>();
-            processJsonMap.put(PID_KEY, pid);
-            processJsonMap.put(USER_NAME_KEY, userName);
-            processJsonMap.put(START_INSTANT_KEY, startInstant);
-            processJsonMap.put(TOTAL_CPU_DURATION_KEY, totalCpuDuration);
-            processJsonMap.put(COMMAND_KEY, command);
-            processJsonMap.put(PARENT_PID_KEY, parentPid);
-            processJsonMap.put(HAS_CHILDREN_KEY, hasChildren);
-            processJsonMap.put(SUPPORTS_NORMAL_TERMINATION_KEY, supportsNormalTermination);
-            processesList.add(processJsonMap);
+            Process processModel = new Process(process);
+            processesList.add(processModel);
         });
-        processesJsonMap.put(PROCESSES_KEY, processesList);
-        processesJsonMap.put(CAPTURE_MILLISECONDS_KEY, captureTime);
-        return gson.toJson(processesJsonMap) + LINE_SEPARATOR;
+        Snapshot snapshot = new Snapshot();
+        snapshot.setProcesses(processesList);
+        snapshot.setCaptureMilliseconds(captureTime);
+        return gson.toJson(snapshot);
     }
 
     private String processesSnapshotToCSV(Stream<ProcessHandle> processes, long captureTime){
-        Gson gson = new Gson();
-        String otherString = "-";
-        long otherLong = -1;
-        String processDataSeparator = ",";
-        String headers = "pid,captureTime,userName,startInstant,totalCpuDuration,command,supportsNormalTermination,parentPid,hasChildren";
-        StringBuilder result = new StringBuilder(headers + LINE_SEPARATOR);
+        StringBuilder result = new StringBuilder();
         List <String> processesList = new ArrayList<>();
         processes.forEach(process -> {
-            long pid = process.pid(); // pid del proceso
-            String userName = process.info().user().orElse(otherString); //nombre de usuario que abrió el proceso
-            String startInstant = process.info().startInstant().orElse(Instant.MIN).toString(); /* Instante de tiempo
-            en el que se abrió el proceso */
-            long totalCpuDuration = process.info().totalCpuDuration().orElse(Duration.ZERO).toMillis(); /* Duración en milisegundos
-            del proceso */
-            String command = process.info().command().orElse(otherString); //comando que levanta el proceso
-            long parentPid = process.parent().isPresent() ? process.parent().get().pid() : otherLong; /*
-            pid del padre si es que tiene */
-            int hasChildren = process.children().count() != 0 ? 1 : 0;
-            /* Una cosa es el  momento en que se tomó el snapshot de procesos y otra el momento cuando se esta
-             consultando su estado, por lo que puede ser que un proceso ya no este vivo
-            al momento de consultar su estado. Lo mismo pasa cuando se requiera rearmar el ProcessHandle
-            usando el metodo of(pid proceso)!!!!
-             */
-            /*
-            boolean isAlive = process.isAlive(); //estado del proceso, sujeto a lo anterior
-             incluir timestamp de cuando se consultó el estado del proceso??
-            útil para métricas
-             */
-            int supportsNormalTermination = process.supportsNormalTermination() ? 1 : 0; /* indica si el proceso puede destruirse
-            usando el método destroy() de la API de procesos de Java (interfaz ProcessHandle)
-
-            En caso de no poder usar destroy(), se debe destruir a la fuerza con destroyForcibly()
-            de la misma API.
-            */
-            Process processModel = new Process(pid, userName, startInstant, totalCpuDuration, command, parentPid, hasChildren, supportsNormalTermination, captureTime);
-            processesList.add(processModel.toCSV());
+            Process processModel = new Process(process);
+            processesList.add(processModel.toCSV(captureTime));
         });
         for(String processString : processesList){
-            result.append(processString);
+            result.append(processString + System.getProperty("line.separator"));
         }
         return result.toString();
     }

@@ -46,11 +46,15 @@ public class ProcessRecorder {
 
     private void createOutputFile(File parent) {
         String reportDate = DateHelper.now();
-        String outputfileExtension = "." + this.getCaptureConfigurationController().getTemporalConfig().getOutputFormat();
-        this.outputFile = new File(parent, reportDate + "_" + this.captureConfigurationController.getId() + outputfileExtension);
+        String outputFileExtension = this.getCaptureConfigurationController().getTemporalConfig().getOutputFormat();
+        this.outputFile = new File(parent, reportDate + "_" + this.captureConfigurationController.getId() + "." + outputFileExtension);
         try {
             this.outputFile.createNewFile();
             this.fileOutputStream = new FileOutputStream(outputFile);
+            if(outputFileExtension.equals(CaptureThread.CSV_FORMAT)){
+                String firstLine = CaptureThread.CSV_HEADERS + System.getProperty("line.separator");
+                fileOutputStream.write(firstLine.getBytes());
+            }
             this.fileDescription = new FileDescription(outputFile, ProcessRecorder.class.getName());
         } catch (FileNotFoundException e) {
             LOGGER.log(Level.SEVERE, null, e);

@@ -1,6 +1,10 @@
 package mo.capture.process.plugin.models;
 
-public class Process{
+import java.io.Serializable;
+import java.time.Duration;
+import java.time.Instant;
+
+public class Process implements Serializable {
 
     private long pid;
     private String userName;
@@ -10,10 +14,38 @@ public class Process{
     private long parentPid;
     private int hasChildren;
     private int supportsNormalTermination;
-    private long captureTime;
-    public static final String DATA_SEPARATOR = ",";
 
-    public Process(long pid, String userName, String startInstant, long totalCpuDuration, String command, long parentPid, int hasChildren, int supportsNormalTermination, long captureTime) {
+    public Process() {
+
+    }
+
+    public Process(ProcessHandle process){
+        long pid = process.pid(); // pid del proceso
+        String userName = process.info().user().orElse(CaptureThread.OTHER_STRING); //nombre de usuario que abrió el proceso
+        String startInstant = process.info().startInstant().orElse(Instant.MIN).toString(); /* Instante de tiempo
+            en el que se abrió el proceso */
+        long totalCpuDuration = process.info().totalCpuDuration().orElse(Duration.ZERO).toMillis(); /* Duración en milisegundos
+            del proceso */
+        String command = process.info().command().orElse(CaptureThread.OTHER_STRING); //comando que levanta el proceso
+        long parentPid = process.parent().isPresent() ? process.parent().get().pid() : CaptureThread.OTHER_LONG; /*
+            pid del padre si es que tiene */
+        int hasChildren = process.children().count() != 0 ? 1: 0;
+            /* Una cosa es el  momento en que se tomó el snapshot de procesos y otra el momento cuando se esta
+             consultando su estado, por lo que puede ser que un proceso ya no este vivo
+            al momento de consultar su estado. Lo mismo pasa cuando se requiera rearmar el ProcessHandle
+            usando el metodo of(pid proceso)!!!!
+             */
+            /*
+            boolean isAlive = process.isAlive(); //estado del proceso, sujeto a lo anterior
+             incluir timestamp de cuando se consultó el estado del proceso??
+            útil para métricas
+             */
+        int supportsNormalTermination = process.supportsNormalTermination() ? 1 : 0; /* indica si el proceso puede destruirse
+            usando el método destroy() de la API de procesos de Java (interfaz ProcessHandle)
+
+            En caso de no poder usar destroy(), se debe destruir a la fuerza con destroyForcibly()
+            de la misma API.
+            */
         this.pid = pid;
         this.userName = userName;
         this.startInstant = startInstant;
@@ -22,7 +54,6 @@ public class Process{
         this.parentPid = parentPid;
         this.hasChildren = hasChildren;
         this.supportsNormalTermination = supportsNormalTermination;
-        this.captureTime = captureTime;
     }
 
     public long getPid() {
@@ -89,18 +120,12 @@ public class Process{
         this.supportsNormalTermination = supportsNormalTermination;
     }
 
-    public long getCaptureTime() {
-        return captureTime;
-    }
 
-    public void setCaptureTime(long captureTime) {
-        this.captureTime = captureTime;
-    }
-
-    public String toCSV(){
-        return  this.pid + DATA_SEPARATOR + this.captureTime + DATA_SEPARATOR +
-                userName + DATA_SEPARATOR + startInstant + DATA_SEPARATOR +
-                totalCpuDuration + DATA_SEPARATOR + command + DATA_SEPARATOR + parentPid + DATA_SEPARATOR +
+    public String toCSV(long captureTime){
+        String dataSeparator = ",";
+        return  this.pid + dataSeparator + captureTime + dataSeparator +
+                userName + dataSeparator + startInstant + dataSeparator +
+                totalCpuDuration + dataSeparator + command + dataSeparator + parentPid + dataSeparator +
                 hasChildren;
     }
 
