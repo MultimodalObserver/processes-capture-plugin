@@ -1,5 +1,6 @@
 package mo.capture.process.plugin.views;
 
+import mo.capture.process.plugin.models.CaptureThread;
 import mo.core.ui.Utils;
 import mo.capture.process.plugin.models.CaptureConfiguration;
 import mo.core.I18n;
@@ -21,7 +22,8 @@ public class ConfigurationDialog extends JDialog{
     private JTextField snapshotCaptureTimeTextField;
     private JLabel snapshotCaptureTimeErrorLabel;
     private JButton saveConfigButton;
-
+    private JLabel formatLabel;
+    private JComboBox<String> formatComboBox;
     private I18n i18n;
 
     public ConfigurationDialog(){
@@ -30,85 +32,159 @@ public class ConfigurationDialog extends JDialog{
         this.accepted = false;
         this.i18n = new I18n(ConfigurationDialog.class);
         this.setTitle(this.i18n.s("configurationFrameTitleText"));
-        this.configurationNameLabel = new JLabel(this.i18n.s("configurationNameLabelText"));
-        this.configurationNameTextField = new JTextField();
-        this.configurationNameErrorLabel = new JLabel();
-        this.configurationNameErrorLabel.setVisible(false);
-        this.saveConfigButton = new JButton(this.i18n.s("saveConfigButtonText"));
-        this.snapshotCaptureTimeLabel = new JLabel("snapshotCaptureTimeLabelText");
-        this.snapshotCaptureTimeTextField = new JTextField();
-        this.snapshotCaptureTimeErrorLabel = new JLabel();
-        this.snapshotCaptureTimeErrorLabel.setVisible(false);
-        this.centerComponents();
+        this.initComponents();
         this.addComponents();
         this.addActionListeners();
     }
 
-    private void centerComponents(){
-        this.configurationNameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        this.configurationNameTextField.setAlignmentX(Component.CENTER_ALIGNMENT);
-        this.configurationNameErrorLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        this.saveConfigButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+    private void initComponents(){
+        this.configurationNameLabel = new JLabel(this.i18n.s("configurationNameLabelText"));
+        this.configurationNameTextField = new JTextField();
+        this.configurationNameErrorLabel = new JLabel();
+        this.configurationNameErrorLabel.setVisible(false);
+        this.configurationNameErrorLabel.setForeground(Color.RED);
+        this.saveConfigButton = new JButton(this.i18n.s("saveConfigButtonText"));
+        this.snapshotCaptureTimeLabel = new JLabel(this.i18n.s("snapshotCaptureTimeLabelText"));
+        this.snapshotCaptureTimeLabel.setToolTipText(this.i18n.s("snapshotCaptureTooltip"));
+        this.snapshotCaptureTimeTextField = new JTextField();
+        this.snapshotCaptureTimeErrorLabel = new JLabel();
+        this.snapshotCaptureTimeErrorLabel.setVisible(false);
+        this.snapshotCaptureTimeErrorLabel.setForeground(Color.RED);
+        this.formatLabel = new JLabel(this.i18n.s("formatLabelText"));
+        this.formatComboBox = new JComboBox<>();
+        this.formatComboBox.addItem(CaptureThread.JSON_FORMAT);
+        this.formatComboBox.addItem(CaptureThread.CSV_FORMAT);
     }
 
     private void addComponents(){
+        this.setLayout(new GridBagLayout());
+        GridBagConstraints constraints = new GridBagConstraints();
         Container contentPane = this.getContentPane();
-        contentPane.setLayout(new BoxLayout(contentPane, BoxLayout.Y_AXIS));
-        contentPane.add(this.configurationNameLabel);
-        contentPane.add(this.configurationNameTextField);
-        contentPane.add(this.configurationNameErrorLabel);
-        contentPane.add(this.snapshotCaptureTimeLabel);
-        contentPane.add(this.snapshotCaptureTimeTextField);
-        contentPane.add(this.snapshotCaptureTimeErrorLabel);
-        contentPane.add(this.saveConfigButton);
+
+        /* Config name label*/
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        this.setConstraintsForLeftSide(constraints, true);
+        constraints.insets = new Insets(10,10,5,5);
+        contentPane.add(this.configurationNameLabel, constraints);
+
+        /*Config name Text Field*/
+        constraints = new GridBagConstraints();
+        constraints.gridx=1;
+        constraints.gridy=0;
+        this.setConstraintsForRightSide(constraints, false);
+        constraints.insets = new Insets(10,5,5,10);
+        contentPane.add(this.configurationNameTextField, constraints);
+
+        /* Config name error label */
+        constraints = new GridBagConstraints();
+        constraints.gridx=1;
+        constraints.gridy=1;
+        this.setConstraintsForRightSide(constraints, true);
+        contentPane.add(this.configurationNameErrorLabel, constraints);
+
+        /* snapshot capture Time Label*/
+        constraints = new GridBagConstraints();
+        constraints.gridx=0;
+        constraints.gridy=2;
+        this.setConstraintsForLeftSide(constraints, true);
+        contentPane.add(this.snapshotCaptureTimeLabel, constraints);
+
+        /* Snapshot capture Time Text field*/
+        constraints = new GridBagConstraints();
+        constraints.gridx=1;
+        constraints.gridy=2;
+        this.setConstraintsForRightSide(constraints, false);
+        contentPane.add(this.snapshotCaptureTimeTextField, constraints);
+
+        /* Snapshot capture Time Error Label*/
+        constraints = new GridBagConstraints();
+        constraints.gridx=1;
+        constraints.gridy=3;
+        this.setConstraintsForRightSide(constraints, true);
+        contentPane.add(this.snapshotCaptureTimeErrorLabel, constraints);
+
+        /* Format Label*/
+        constraints = new GridBagConstraints();
+        constraints.gridx=0;
+        constraints.gridy=4;
+        this.setConstraintsForLeftSide(constraints, false);
+        contentPane.add(this.formatLabel, constraints);
+
+        /* Format combo Box*/
+        constraints = new GridBagConstraints();
+        constraints.gridx = 1;
+        constraints.gridy = 4;
+        this.setConstraintsForRightSide(constraints, false);
+        contentPane.add(this.formatComboBox, constraints);
+
+        /* Save button*/
+        constraints.gridx= 0;
+        constraints.gridy=5;
+        constraints.gridheight=1;
+        constraints.gridwidth=2;
+        constraints.weightx=0.0;
+        constraints.weighty=0.0;
+        constraints.fill=GridBagConstraints.HORIZONTAL;
+        constraints.insets= new Insets(-10,10,10,10);
+        contentPane.add(this.saveConfigButton, constraints);
+    }
+
+    private void setConstraintsForLeftSide(GridBagConstraints constraints, boolean hasErrorLabel){
+        constraints.gridwidth=1;
+        constraints.gridheight= hasErrorLabel ? 2 : 1;
+        constraints.weighty=1.0;
+        constraints.insets= new Insets(5,10,5,5);
+        constraints.anchor=GridBagConstraints.FIRST_LINE_START;
+    }
+
+    private void setConstraintsForRightSide(GridBagConstraints constraints, boolean errorLabel){
+        constraints.gridheight=1;
+        constraints.gridwidth=GridBagConstraints.REMAINDER;
+        constraints.weightx=1.0;
+        constraints.fill= GridBagConstraints.HORIZONTAL;
+        int topInset = errorLabel ? 0 : 5;
+        int bottomInset = errorLabel ? 5 : 0;
+        constraints.insets= new Insets(topInset,5,bottomInset,10);
+        constraints.anchor = GridBagConstraints.FIRST_LINE_START;
     }
 
     public void showDialog(){
-        setMinimumSize(new Dimension(400, 150));
-        setPreferredSize(new Dimension(400, 300));
-        pack();
+        this.setMinimumSize(new Dimension(500, 300));
+        this.setPreferredSize(new Dimension(500, 300));
+        this.pack();
+        this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         Utils.centerOnScreen(this);
         this.setVisible(true);
     }
 
     private void addActionListeners(){
-        this.saveConfigButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                ConfigurationDialog.this.configurationNameErrorLabel.setVisible(false);
-                ConfigurationDialog.this.configurationNameErrorLabel.setText("");
-                ConfigurationDialog.this.snapshotCaptureTimeErrorLabel.setVisible(false);
-                ConfigurationDialog.this.snapshotCaptureTimeErrorLabel.setText("");
-                String configurationName = ConfigurationDialog.this.configurationNameTextField.getText();
-                String snapshotCaptureTime = ConfigurationDialog.this.snapshotCaptureTimeTextField.getText();
+        this.saveConfigButton.addActionListener(e -> {
+            this.configurationNameErrorLabel.setVisible(false);
+            this.configurationNameErrorLabel.setText("");
+            this.snapshotCaptureTimeErrorLabel.setVisible(false);
+            this.snapshotCaptureTimeErrorLabel.setText("");
+            String configurationName = this.configurationNameTextField.getText();
+            String snapshotCaptureTime = this.snapshotCaptureTimeTextField.getText();
+            boolean invalidTime = snapshotCaptureTime.isEmpty() || !this.containsOnlyNumbers(snapshotCaptureTime)
+                    || Integer.parseInt(snapshotCaptureTime) < 0;
+            String selectedOutputFormat = (String) this.formatComboBox.getSelectedItem();
+            if(configurationName.isEmpty() || invalidTime){
                 if(configurationName.isEmpty()){
-                    ConfigurationDialog.this.configurationNameErrorLabel.setText(ConfigurationDialog.this.i18n.s("emptyConfig"));
-                    ConfigurationDialog.this.configurationNameErrorLabel.setVisible(true);
-                    return;
+                    this.configurationNameErrorLabel.setText(this.i18n.s("emptyConfig"));
+                    this.configurationNameErrorLabel.setVisible(true);
                 }
-                else if(configurationName.contains("_")){
-                    ConfigurationDialog.this.configurationNameErrorLabel.setText(ConfigurationDialog.this.i18n.s("invalidConfigName"));
-                    ConfigurationDialog.this.configurationNameErrorLabel.setVisible(true);
-                    return;
-                }
-                if(snapshotCaptureTime.isEmpty()){
-                    ConfigurationDialog.this.snapshotCaptureTimeErrorLabel.setText(ConfigurationDialog.this.i18n.s("emptySnapshotCaptureTime"));
-                    ConfigurationDialog.this.snapshotCaptureTimeErrorLabel.setVisible(true);
-                    return;
+                if(invalidTime){
+                    this.snapshotCaptureTimeErrorLabel.setText(this.i18n.s("invalidTime"));
+                    this.snapshotCaptureTimeErrorLabel.setVisible(true);
 
                 }
-                else if(Integer.parseInt(snapshotCaptureTime) <= 1){
-                    ConfigurationDialog.this.snapshotCaptureTimeErrorLabel.setText(ConfigurationDialog.this.i18n.s("invalidSnapshotCaptureTime"));
-                    ConfigurationDialog.this.snapshotCaptureTimeErrorLabel.setVisible(true);
-                    return;
-                }
-                ConfigurationDialog.this.setVisible(false);
-                ConfigurationDialog.this.dispose();
-                ConfigurationDialog.this.temporalConfig = new CaptureConfiguration(configurationName, Integer.parseInt(snapshotCaptureTime));
-                ConfigurationDialog.this.accepted = true;
-                ConfigurationDialog.this.setVisible(false);
-                ConfigurationDialog.this.dispose();
+                return;
             }
+            this.temporalConfig = new CaptureConfiguration(configurationName, Integer.parseInt(snapshotCaptureTime), selectedOutputFormat);
+            this.accepted = true;
+            this.setVisible(false);
+            this.dispose();
         });
     }
 
@@ -118,5 +194,13 @@ public class ConfigurationDialog extends JDialog{
 
     public boolean isAccepted() {
         return accepted;
+    }
+
+    private boolean containsOnlyNumbers(String str) {
+        for (int i = 0; i < str.length(); i++) {
+            if (!Character.isDigit(str.charAt(i)))
+                return false;
+        }
+        return true;
     }
 }

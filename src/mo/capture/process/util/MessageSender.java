@@ -1,5 +1,6 @@
 package mo.capture.process.util;
 
+import mo.capture.process.plugin.ProcessCaptureConfiguration;
 import mo.communication.Command;
 import mo.communication.PetitionResponse;
 import mo.communication.RemoteClient;
@@ -20,7 +21,7 @@ public class MessageSender {
     public static void sendMessage(String messageType, String messageContent){
         HashMap<String, Object> data = new HashMap<>();
         data.put(messageType, messageContent);
-        PetitionResponse petitionResponse = new PetitionResponse(Command.DATA_STREAMING, data);
+        PetitionResponse petitionResponse = new PetitionResponse(ProcessCaptureConfiguration.PLUGIN_MESSAGE_KEY, data);
         ArrayList<RemoteClient> clients = ServerConnection.getInstance().getClients();
         if(clients == null || clients.size() == 0){
             return;

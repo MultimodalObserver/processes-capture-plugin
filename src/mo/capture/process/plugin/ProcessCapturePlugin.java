@@ -4,8 +4,6 @@ package mo.capture.process.plugin;
 import bibliothek.util.xml.XElement;
 import bibliothek.util.xml.XIO;
 import mo.capture.CaptureProvider;
-import mo.communication.CommunicationConfiguration;
-import mo.communication.CommunicationProvider1;
 import mo.communication.streaming.capture.PluginCaptureListener;
 import mo.core.I18n;
 import mo.core.plugin.Extends;
@@ -31,7 +29,7 @@ import java.util.logging.Logger;
         }
 )
 
-public class ProcessCapturePlugin implements CaptureProvider, CommunicationProvider1 {
+public class ProcessCapturePlugin implements CaptureProvider {
 
     private static final Logger logger = Logger.getLogger(ProcessCapturePlugin.class.getName());
     private I18n i18n;
@@ -49,10 +47,6 @@ public class ProcessCapturePlugin implements CaptureProvider, CommunicationProvi
         return this.i18n.s("processCapturePluginDisplayedName");
     }
 
-    @Override
-    public CommunicationConfiguration initNewConfiguration(String s) {
-        return null;
-    }
 
     @Override
     public Configuration initNewConfiguration(ProjectOrganization projectOrganization) {
@@ -83,7 +77,8 @@ public class ProcessCapturePlugin implements CaptureProvider, CommunicationProvi
                 for (XElement pathX : pathsX) {
                     String path = pathX.getString();
                     File archive = new File(file.getParentFile(), path);
-                    Configuration config = new ProcessCaptureConfiguration(archive);
+                    Configuration config = new ProcessCaptureConfiguration();
+                    config = config.fromFile(archive);
                     processCapturePlugin.configurations.add(config);
                 }
                 return processCapturePlugin;
@@ -96,7 +91,7 @@ public class ProcessCapturePlugin implements CaptureProvider, CommunicationProvi
 
     @Override
     public File toFile(File parent) {
-        File file = new File(parent, "processes-capture.xml");
+        File file = new File(parent, "processes-capture-plugin.xml");
         if (!file.isFile()) {
             try {
                 file.createNewFile();
@@ -106,10 +101,9 @@ public class ProcessCapturePlugin implements CaptureProvider, CommunicationProvi
         }
         XElement root = new XElement("capturers");
         for (Configuration config : configurations) {
-            File p = new File(parent, "processes-capture");
+            File p = new File(parent, "processes-capture-configurations");
             p.mkdirs();
             File f = config.toFile(p);
-
             XElement path = new XElement("path");
             Path parentPath = parent.toPath();
             Path configPath = f.toPath();

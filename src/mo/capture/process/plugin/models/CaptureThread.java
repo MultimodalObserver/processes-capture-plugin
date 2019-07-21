@@ -1,12 +1,14 @@
 package mo.capture.process.plugin.models;
 
 import com.google.gson.Gson;
+import mo.capture.process.plugin.ProcessCaptureConfiguration;
 import mo.capture.process.util.MessageSender;
 import mo.communication.streaming.capture.CaptureEvent;
 import mo.communication.streaming.capture.PluginCaptureListener;
 import mo.capture.process.plugin.ProcessRecorder;
 import mo.capture.process.util.DateHelper;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -14,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class CaptureThread extends Thread {
@@ -33,17 +36,22 @@ public class CaptureThread extends Thread {
     private static final String PARENT_PID_KEY = "parentPid";
     private static final String HAS_CHILDREN_KEY = "hasChildren";
     private static final String PROCESSES_KEY = "processes";
-    private static final String DATA_KEY = "data";
     private long pauseTime;
     private long resumeTime;
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
-    private ProcessRecorder recorder;
+    private int sleepTime;
+    private FileOutputStream fileOutputStream;
+    private String outputFormat;
+    public static final String CSV_FORMAT = "csv";
+    public static final String JSON_FORMAT = "json";
 
-    public CaptureThread(int status, ProcessRecorder recorder) {
+    public CaptureThread(int status, FileOutputStream fileOutputStream,  int sleepTime, String outputFormat) {
         this.status = status;
         this.pauseTime = 0;
         this.resumeTime = 0;
-        this.recorder = recorder;
+        this.sleepTime = sleepTime;
+        this.fileOutputStream = fileOutputStream;
+        this.outputFormat = outputFormat;
     }
 
     public int getStatus() {
@@ -68,11 +76,11 @@ public class CaptureThread extends Thread {
                 long now = DateHelper.nowMilliseconds();
                 long resumedCaptureTime = this.pauseTime + (now - this.resumeTime);
                 long captureTime = this.resumeTime == 0 ? now : resumedCaptureTime;
-                String jsonProcessesMap = processesSnapshotToJsonFormat(processes, captureTime);
-                //String processesSnapshotToCSV = processesSnapshotToCSV(processes, captureTime);
+                String processesMap = this.outputFormat.equals("csv") ? this.processesSnapshotToCSV(processes, captureTime) :
+                        processesSnapshotToJsonFormat(processes, captureTime);
                 try {
-                    this.recorder.getFileOutputStream().write(jsonProcessesMap.getBytes());
-                    MessageSender.sendMessage(DATA_KEY, jsonProcessesMap);
+                    this.fileOutputStream.write(processesMap.getBytes());
+                    MessageSender.sendMessage(ProcessCaptureConfiguration.MESSAGE_CONTENT_KEY, processesMap);
                     /*if(this.recorder.getDataListeners() != null){
                         *//*CaptureEvent captureEvent = new CaptureEvent(this.recorder.getCaptureConfigurationController().getId(),
                                 this.recorder.getClass().getName(), jsonProcessesMap);
@@ -85,9 +93,10 @@ public class CaptureThread extends Thread {
                     return;
                 }
                 try {
-                    Thread.sleep(this.recorder.getCaptureConfigurationController().getTemporalConfig().getSnapshotCaptureTime()/1000);
+                    Thread.sleep(sleepTime*1000);
                 } catch (InterruptedException e) {
                     ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
+                    return;
                 }
             }
             else if(this.status == PAUSED_STATUS){
@@ -95,18 +104,13 @@ public class CaptureThread extends Thread {
                 y no deje de ser considerado por le procesador al momento de la planificación de los procesos
                  */
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(500);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
+                    return;
                 }
             }
             else if(this.status == STOPPED_STATUS) {
-                try {
-                    this.recorder.getFileOutputStream().close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
-                }
                 return;
             }
         }

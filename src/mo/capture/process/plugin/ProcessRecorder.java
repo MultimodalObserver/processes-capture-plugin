@@ -26,7 +26,6 @@ public class ProcessRecorder {
     private File outputFile;
     private FileOutputStream fileOutputStream;
     private FileDescription fileDescription;
-    private static final String OUTPUT_FILE_EXTENSION = ".json";
     private List<PluginCaptureListener> dataListeners;
     private CaptureThread captureThread;
     public static final Logger LOGGER = Logger.getLogger(ProcessRecorder.class.getName());
@@ -39,12 +38,16 @@ public class ProcessRecorder {
         this.captureConfigurationController = captureConfigurationController;
         this.dataListeners = new ArrayList<>();
         this.createOutputFile(stageFolder);
-        this.captureThread = new CaptureThread(CaptureThread.RUNNING_STATUS, this);
+        int sleepTime = captureConfigurationController.getTemporalConfig().getSnapshotCaptureTime();
+        String selectedOutputFormat = captureConfigurationController.getTemporalConfig().getOutputFormat();
+        this.captureThread = new CaptureThread(CaptureThread.RUNNING_STATUS, this.fileOutputStream,
+                sleepTime, selectedOutputFormat);
     }
 
     private void createOutputFile(File parent) {
         String reportDate = DateHelper.now();
-        this.outputFile = new File(parent, reportDate + "_" + this.captureConfigurationController.getId() + OUTPUT_FILE_EXTENSION);
+        String outputfileExtension = "." + this.getCaptureConfigurationController().getTemporalConfig().getOutputFormat();
+        this.outputFile = new File(parent, reportDate + "_" + this.captureConfigurationController.getId() + outputfileExtension);
         try {
             this.outputFile.createNewFile();
             this.fileOutputStream = new FileOutputStream(outputFile);
@@ -74,6 +77,12 @@ public class ProcessRecorder {
 
     public void stop(){
         this.captureThread.setStatus(CaptureThread.STOPPED_STATUS);
+        try {
+            this.fileOutputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, null, e);
+        }
     }
 
     /* Para el pause y resume, hay que registrar el tiempo que se pauso y el que se resumió */
