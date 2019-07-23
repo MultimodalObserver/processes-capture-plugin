@@ -124,9 +124,10 @@ public class Process implements Serializable {
     public String toCSV(long captureTime){
         String dataSeparator = ",";
         return  this.pid + dataSeparator + captureTime + dataSeparator +
-                userName + dataSeparator + startInstant + dataSeparator +
-                totalCpuDuration + dataSeparator + command + dataSeparator + parentPid + dataSeparator +
-                hasChildren;
+                this.userName + dataSeparator + this.startInstant + dataSeparator +
+                this.totalCpuDuration + dataSeparator + this.command + dataSeparator +
+                this.supportsNormalTermination + dataSeparator + this.parentPid + dataSeparator +
+                this.hasChildren;
     }
 
 }
