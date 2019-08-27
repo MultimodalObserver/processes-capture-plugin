@@ -23,6 +23,8 @@ public class ProcessRecorder {
     public static final int ALL_PROCESSES = 0;
     public static final int ONLY_RUNNING_PROCESSES = 1;
     public static final int ONLY_NOT_RUNNING_PROCESSES = 2;
+    private static final String INIT_JSON_ARRAY = "[";
+    private static final String END_JSON_ARRAY = "]";
     private File outputFile;
     private FileOutputStream fileOutputStream;
     private FileDescription fileDescription;
@@ -55,6 +57,10 @@ public class ProcessRecorder {
                 String firstLine = CaptureThread.CSV_HEADERS + System.getProperty("line.separator");
                 fileOutputStream.write(firstLine.getBytes());
             }
+            else if(outputFileExtension.equals(CaptureThread.JSON_FORMAT)){
+                fileOutputStream.write(INIT_JSON_ARRAY.getBytes());
+            }
+
             this.fileDescription = new FileDescription(outputFile, ProcessRecorder.class.getName());
         } catch (FileNotFoundException e) {
             LOGGER.log(Level.SEVERE, null, e);
@@ -82,9 +88,13 @@ public class ProcessRecorder {
     public void stop(){
         this.captureThread.setStatus(CaptureThread.STOPPED_STATUS);
         try {
+            this.fileOutputStream.flush();
+            long channelSize = this.fileOutputStream.getChannel().position();
+            long sizeWithoutLastComma = channelSize - CaptureThread.COMMA_SEPARATOR.getBytes().length;
+            this.fileOutputStream.getChannel().truncate(sizeWithoutLastComma);
+            this.fileOutputStream.write(END_JSON_ARRAY.getBytes());
             this.fileOutputStream.close();
         } catch (IOException e) {
-            e.printStackTrace();
             LOGGER.log(Level.SEVERE, null, e);
         }
     }

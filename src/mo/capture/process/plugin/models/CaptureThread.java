@@ -28,6 +28,7 @@ public class CaptureThread extends Thread {
     public static final int RESUMED_STATUS = 4;
     public static final String OTHER_STRING = "-";
     public static final long OTHER_LONG = -1;
+    public static final String COMMA_SEPARATOR = ",";
     private long pauseTime;
     private long resumeTime;
     private int sleepTime;
@@ -112,7 +113,7 @@ public class CaptureThread extends Thread {
         Snapshot snapshot = new Snapshot();
         snapshot.setProcesses(processesList);
         snapshot.setCaptureMilliseconds(captureTime);
-        return gson.toJson(snapshot);
+        return gson.toJson(snapshot)+ COMMA_SEPARATOR;
     }
 
     private String processesSnapshotToCSV(Stream<ProcessHandle> processes, long captureTime){
