@@ -160,15 +160,13 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
 
     @Override
     public void onMessageReceived(Object o, PetitionResponse petitionResponse) {
-        //System.out.println("LLEGO MENSAJE");
         if(!petitionResponse.getType().equals(PLUGIN_MESSAGE_KEY) || petitionResponse.getHashMap() == null){
             return;
         }
-        //System.out.println("ES DEL TIPO QUE ESPERABA");
         ProcessRequest processRequest = this.gson.fromJson((String) petitionResponse.getHashMap().get(MESSAGE_CONTENT_KEY),
                 ProcessRequest.class);
         if(processRequest.getAction().equals("newProcess") && processRequest.getNewProcessPath() != null){
-            this.initNewProcess(processRequest.getNewProcessPath());
+            this.initNewProcess(processRequest.getNewProcessPath(), true);
             return;
         }
         Optional<ProcessHandle> process;
@@ -178,44 +176,73 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
         catch(NullPointerException e){
             return;
         }
-        //System.out.println("OBTUVE EL OPCIONAL");
         if(process.isEmpty()){
             //Mensaje!!
-            //System.out.println("OPCIONAL VACIO");
             MessageSender.sendMessage(MESSAGE_ERROR_KEY,
                     "Ya no existe el proceso con ese PID");
         }
         else{
-            //System.out.println("LLEGUE AL ELSE");
             if(processRequest.getAction().equals("destroy")){
-                boolean destroyed = process.get().destroyForcibly();
-                //System.out.println("INTENTANDO DESTRUIR PROCESO");
-                if(!destroyed){
-                    //Mensaje de que el proceso no pudo ser destruido!!
-                    //System.out.println("NO SE PUDO DESTRUIR");
-                    MessageSender.sendMessage(MESSAGE_ERROR_KEY,
-                            "El proceso no pudo ser destruido");
-                    return;
-                }
-                //Mensaje de que se destruyo el proceso
-                //System.out.println("PROCESO DESTRUIDO");
-                MessageSender.sendMessage(MESSAGE_SUCCESS_KEY,
-                        "El proceso fue destruido");
+                this.destroyProcess(process.get(), true);
+            }
+            else if(processRequest.getAction().equals("restart")){
+                this.restartProcess(process.get());
             }
         }
     }
 
-    private void initNewProcess(String newProcessPath) {
+    private boolean initNewProcess(String newProcessPath, boolean sendMessage) {
         try {
             Runtime.getRuntime().exec(newProcessPath);
         } catch (IOException e) {
-            e.printStackTrace();
+            if(!sendMessage){
+                return false;
+            }
             MessageSender.sendMessage(MESSAGE_ERROR_KEY,
                     "Error al iniciar el proceso");
+        }
+        if(sendMessage){
+            MessageSender.sendMessage(MESSAGE_SUCCESS_KEY,
+                    "El proceso fue creado");
+        }
+        return true;
+    }
+
+    private boolean destroyProcess(ProcessHandle processHandle, boolean sendMessage){
+        boolean destroyed = processHandle.destroyForcibly();
+        if(!destroyed){
+            if(sendMessage){
+                MessageSender.sendMessage(MESSAGE_ERROR_KEY,
+                        "El proceso no pudo ser destruido");
+            }
+        }
+        else{
+            if(sendMessage){
+                MessageSender.sendMessage(MESSAGE_SUCCESS_KEY,
+                        "El proceso fue destruido");
+            }
+        }
+        return destroyed;
+    }
+
+    private void restartProcess(ProcessHandle processHandle) {
+        Optional<String> optional = processHandle.info().command();
+        if(optional.isEmpty()){
+            MessageSender.sendMessage(MESSAGE_ERROR_KEY, "Error al reiniciar el proceso");
             return;
         }
-        MessageSender.sendMessage(MESSAGE_SUCCESS_KEY,
-                "El proceso fue creado");
+        String processCommandPath = optional.get();
+        boolean destroyed = this.destroyProcess(processHandle, false);
+        if(!destroyed){
+            MessageSender.sendMessage(MESSAGE_ERROR_KEY, "Error al reiniciar el proceso");
+            return;
+        }
+        boolean init = this.initNewProcess(processCommandPath, false);
+        if(!init){
+            MessageSender.sendMessage(MESSAGE_ERROR_KEY, "Error al reiniciar el proceso");
+            return;
+        }
+        MessageSender.sendMessage(MESSAGE_SUCCESS_KEY, "El proceso fue reiniciado");
     }
 
 }
