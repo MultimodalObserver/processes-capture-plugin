@@ -167,6 +167,10 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
         //System.out.println("ES DEL TIPO QUE ESPERABA");
         ProcessRequest processRequest = this.gson.fromJson((String) petitionResponse.getHashMap().get(MESSAGE_CONTENT_KEY),
                 ProcessRequest.class);
+        if(processRequest.getAction().equals("newProcess") && processRequest.getNewProcessPath() != null){
+            this.initNewProcess(processRequest.getNewProcessPath());
+            return;
+        }
         Optional<ProcessHandle> process;
         try{
             process = ProcessHandle.of(processRequest.getSelectedProcessPID());
@@ -199,6 +203,19 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
                         "El proceso fue destruido");
             }
         }
+    }
+
+    private void initNewProcess(String newProcessPath) {
+        try {
+            Runtime.getRuntime().exec(newProcessPath);
+        } catch (IOException e) {
+            e.printStackTrace();
+            MessageSender.sendMessage(MESSAGE_ERROR_KEY,
+                    "Error al iniciar el proceso");
+            return;
+        }
+        MessageSender.sendMessage(MESSAGE_SUCCESS_KEY,
+                "El proceso fue creado");
     }
 
 }

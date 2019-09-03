@@ -4,10 +4,11 @@ import java.io.Serializable;
 
 public class ProcessRequest implements Serializable {
 
-    private static final long SERIAL_VERSION_UID = 1L;
+    private final static long SERIAL_VERSION_UID = 1L;
 
     private String action;
     private long selectedProcessPID;
+    private String newProcessPath;
 
     public String getAction() {
         return action;
@@ -23,5 +24,13 @@ public class ProcessRequest implements Serializable {
 
     public void setSelectedProcessPID(long selectedProcessPID) {
         this.selectedProcessPID = selectedProcessPID;
+    }
+
+    public String getNewProcessPath() {
+        return newProcessPath;
+    }
+
+    public void setNewProcessPath(String newProcessPath) {
+        this.newProcessPath = newProcessPath;
     }
 }

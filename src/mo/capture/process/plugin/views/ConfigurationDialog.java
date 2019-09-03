@@ -119,14 +119,8 @@ public class ConfigurationDialog extends JDialog{
         contentPane.add(this.formatComboBox, constraints);
 
         /* Save button*/
-        constraints.gridx= 0;
-        constraints.gridy=5;
-        constraints.gridheight=1;
-        constraints.gridwidth=2;
-        constraints.weightx=0.0;
-        constraints.weighty=0.0;
-        constraints.fill=GridBagConstraints.HORIZONTAL;
-        constraints.insets= new Insets(-10,10,10,10);
+        constraints = new GridBagConstraints();
+        this.setConstraintsForSaveButton(constraints);
         contentPane.add(this.saveConfigButton, constraints);
     }
 
@@ -147,6 +141,17 @@ public class ConfigurationDialog extends JDialog{
         int bottomInset = errorLabel ? 5 : 0;
         constraints.insets= new Insets(topInset,5,bottomInset,10);
         constraints.anchor = GridBagConstraints.FIRST_LINE_START;
+    }
+
+    private void setConstraintsForSaveButton(GridBagConstraints constraints){
+        constraints.gridx= 0;
+        constraints.gridy=5;
+        constraints.gridheight=1;
+        constraints.gridwidth=2;
+        constraints.weightx=0.0;
+        constraints.weighty=0.0;
+        constraints.fill=GridBagConstraints.HORIZONTAL;
+        constraints.insets= new Insets(-10,10,10,10);
     }
 
     public void showDialog(){

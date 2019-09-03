@@ -74,7 +74,7 @@ public class CaptureThread extends Thread {
                 String processesData = this.outputFormat.equals(CSV_FORMAT) ? this.processesSnapshotToCSV(processes, captureTime) :
                         processesSnapshotToJsonFormat(processes, captureTime);
                 try {
-                    this.fileOutputStream.write(processesData.getBytes());
+                    this.fileOutputStream.write((processesData + COMMA_SEPARATOR).getBytes());
                     MessageSender.sendMessage(ProcessCaptureConfiguration.MESSAGE_CONTENT_KEY, processesData);
                 } catch (IOException e) {
                     ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
@@ -113,7 +113,7 @@ public class CaptureThread extends Thread {
         Snapshot snapshot = new Snapshot();
         snapshot.setProcesses(processesList);
         snapshot.setCaptureMilliseconds(captureTime);
-        return gson.toJson(snapshot)+ COMMA_SEPARATOR;
+        return gson.toJson(snapshot);
     }
 
     private String processesSnapshotToCSV(Stream<ProcessHandle> processes, long captureTime){
