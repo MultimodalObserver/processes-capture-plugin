@@ -1,4 +1,4 @@
-package mo.capture.process.plugin.models;
+package mo.capture.process.plugin.model;
 
 import java.io.Serializable;
 

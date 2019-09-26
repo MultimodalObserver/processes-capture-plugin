@@ -11,7 +11,7 @@ import mo.core.plugin.Extension;
 import mo.organization.Configuration;
 import mo.organization.ProjectOrganization;
 import mo.organization.StagePlugin;
-import mo.capture.process.plugin.views.ConfigurationDialog;
+import mo.capture.process.plugin.view.ConfigurationDialog;
 
 import java.io.File;
 import java.io.FileInputStream;

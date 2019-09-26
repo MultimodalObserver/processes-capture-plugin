@@ -1,4 +1,4 @@
-package mo.capture.process.plugin.models;
+package mo.capture.process.plugin.model;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -121,12 +121,11 @@ public class Process implements Serializable {
     }
 
 
-    public String toCSV(long captureTime){
-        String dataSeparator = ",";
-        return  this.pid + dataSeparator + captureTime + dataSeparator +
-                this.userName + dataSeparator + this.startInstant + dataSeparator +
-                this.totalCpuDuration + dataSeparator + this.command + dataSeparator +
-                this.supportsNormalTermination + dataSeparator + this.parentPid + dataSeparator +
+    public String toCSV(String columnSeparator, long captureTime){
+        return  this.pid + columnSeparator + captureTime + columnSeparator +
+                this.userName + columnSeparator + this.startInstant + columnSeparator +
+                this.totalCpuDuration + columnSeparator + this.command + columnSeparator +
+                this.supportsNormalTermination + columnSeparator + this.parentPid + columnSeparator +
                 this.hasChildren;
     }
 

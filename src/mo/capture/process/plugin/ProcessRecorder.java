@@ -1,7 +1,10 @@
 package mo.capture.process.plugin;
 
+import mo.capture.process.plugin.model.Format;
+import mo.capture.process.plugin.model.OutputFile;
+import mo.capture.process.plugin.model.Separator;
 import mo.communication.streaming.capture.CaptureConfig;
-import mo.capture.process.plugin.models.CaptureThread;
+import mo.capture.process.plugin.model.CaptureThread;
 import mo.capture.process.util.DateHelper;
 import mo.communication.streaming.capture.PluginCaptureListener;
 import mo.organization.FileDescription;
@@ -20,13 +23,9 @@ public class ProcessRecorder {
     ProjectOrganization projectOrganization;
     Participant participant;
     ProcessCaptureConfiguration captureConfigurationController;
-    public static final int ALL_PROCESSES = 0;
-    public static final int ONLY_RUNNING_PROCESSES = 1;
-    public static final int ONLY_NOT_RUNNING_PROCESSES = 2;
     private static final String INIT_JSON_ARRAY = "[";
     private static final String END_JSON_ARRAY = "]";
-    private File outputFile;
-    private FileOutputStream fileOutputStream;
+    private List<OutputFile> outputFiles;
     private FileDescription fileDescription;
     private List<PluginCaptureListener> dataListeners;
     private CaptureThread captureThread;
@@ -39,43 +38,58 @@ public class ProcessRecorder {
         this.participant = participant;
         this.captureConfigurationController = captureConfigurationController;
         this.dataListeners = new ArrayList<>();
-        this.createOutputFile(stageFolder);
+        this.outputFiles = this.createOutputFiles(stageFolder);
         int sleepTime = captureConfigurationController.getTemporalConfig().getSnapshotCaptureTime();
-        String selectedOutputFormat = captureConfigurationController.getTemporalConfig().getOutputFormat();
-        this.captureThread = new CaptureThread(CaptureThread.RUNNING_STATUS, this.fileOutputStream,
-                sleepTime, selectedOutputFormat);
+        this.captureThread = new CaptureThread(CaptureThread.RUNNING_STATUS, this.outputFiles, sleepTime);
     }
 
-    private void createOutputFile(File parent) {
+    private List<OutputFile> createOutputFiles(File parent) {
+        List<OutputFile> outputFiles = new ArrayList<>();
         String reportDate = DateHelper.now();
-        String outputFileExtension = this.getCaptureConfigurationController().getTemporalConfig().getOutputFormat();
-        this.outputFile = new File(parent, reportDate + "_" + this.captureConfigurationController.getId() + "." + outputFileExtension);
+        File jsonFile = new File(parent, reportDate + "_" + this.captureConfigurationController.getId() +
+                "." + Format.JSON.getValue());
+        FileOutputStream jsonOutputStream;
         try {
-            this.outputFile.createNewFile();
-            this.fileOutputStream = new FileOutputStream(outputFile);
-            if(outputFileExtension.equals(CaptureThread.CSV_FORMAT)){
-                String firstLine = CaptureThread.CSV_HEADERS + System.getProperty("line.separator");
-                fileOutputStream.write(firstLine.getBytes());
-            }
-            else if(outputFileExtension.equals(CaptureThread.JSON_FORMAT)){
-                fileOutputStream.write(INIT_JSON_ARRAY.getBytes());
-            }
-
-            this.fileDescription = new FileDescription(outputFile, ProcessRecorder.class.getName());
-        } catch (FileNotFoundException e) {
-            LOGGER.log(Level.SEVERE, null, e);
+            jsonOutputStream = new FileOutputStream(jsonFile);
+            jsonOutputStream.write(INIT_JSON_ARRAY.getBytes());
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, null, e);
+            LOGGER.log(Level.SEVERE, "Unable to create JSON File", e);
+            return outputFiles;
         }
+        this.fileDescription = new FileDescription(jsonFile, ProcessRecorder.class.getName());
+        OutputFile jsonOutputFile = new OutputFile();
+        jsonOutputFile.setFormat(Format.JSON.getValue());
+        jsonOutputFile.setFile(jsonFile);
+        jsonOutputFile.setOutputStream(jsonOutputStream);
+        outputFiles.add(jsonOutputFile);
+        if(this.captureConfigurationController.getTemporalConfig().isExportToCsv()){
+            File csvFile = new File(parent, reportDate + "_" + this.captureConfigurationController.getId()
+                    + "." + Format.CSV.getValue());
+            FileOutputStream csvOutputStream;
+            try{
+                csvOutputStream = new FileOutputStream(csvFile);
+                String headers = CaptureThread.CSV_HEADERS + System.getProperty("line.separator");
+                csvOutputStream.write(headers.getBytes());
+            }
+            catch(IOException e){
+                LOGGER.log(Level.SEVERE, "Unable to export to CSV", e);
+                return outputFiles;
+            }
+            OutputFile csvOutputFile = new OutputFile();
+            csvOutputFile.setFormat(Format.CSV.getValue());
+            csvOutputFile.setFile(csvFile);
+            csvOutputFile.setOutputStream(csvOutputStream);
+            outputFiles.add(csvOutputFile);
+        }
+        return outputFiles;
     }
 
-    private void deleteOutputFile(){
-        if(!this.outputFile.isFile()){
+    private void deleteOutputFiles(List<OutputFile> outputFiles){
+        if(outputFiles == null || outputFiles.isEmpty()){
             return;
         }
-        this.outputFile.delete();
-        if(!this.fileDescription.getDescriptionFile().isFile()){
-            return;
+        for(OutputFile outputFile : outputFiles){
+            outputFile.getFile().delete();
         }
         this.fileDescription.deleteFileDescription();
     }
@@ -87,15 +101,22 @@ public class ProcessRecorder {
 
     public void stop(){
         this.captureThread.setStatus(CaptureThread.STOPPED_STATUS);
-        try {
-            this.fileOutputStream.flush();
-            long channelSize = this.fileOutputStream.getChannel().position();
-            long sizeWithoutLastComma = channelSize - CaptureThread.COMMA_SEPARATOR.getBytes().length;
-            this.fileOutputStream.getChannel().truncate(sizeWithoutLastComma);
-            this.fileOutputStream.write(END_JSON_ARRAY.getBytes());
-            this.fileOutputStream.close();
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, null, e);
+        for(OutputFile outputFile : outputFiles){
+            boolean isCsvFile = outputFile.getFormat().equals(Format.CSV.getValue());
+            try {
+                outputFile.getOutputStream().flush();
+                long channelSize = outputFile.getOutputStream().getChannel().position();
+                String lastChar = isCsvFile ? Separator.CSV_ROW.getValue() : Separator.JSON.getValue();
+                long sizeWithoutLastChar = channelSize - lastChar.getBytes().length;
+                outputFile.getOutputStream().getChannel().truncate(sizeWithoutLastChar);
+                if(!isCsvFile){
+                    outputFile.getOutputStream().write(END_JSON_ARRAY.getBytes());
+                }
+                outputFile.getOutputStream().flush();
+                outputFile.getOutputStream().close();
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, null, e);
+            }
         }
     }
 
@@ -111,7 +132,7 @@ public class ProcessRecorder {
 
     public void cancel(){
         this.stop();
-        this.deleteOutputFile();
+        this.deleteOutputFiles(this.outputFiles);
     }
 
     public void subscribeListener(PluginCaptureListener pluginCaptureListener){
@@ -129,17 +150,5 @@ public class ProcessRecorder {
             return;
         }
         this.dataListeners.remove(pluginCaptureListener);
-    }
-
-    public FileOutputStream getFileOutputStream() {
-        return fileOutputStream;
-    }
-
-    public List<PluginCaptureListener> getDataListeners() {
-        return dataListeners;
-    }
-
-    public ProcessCaptureConfiguration getCaptureConfigurationController() {
-        return captureConfigurationController;
     }
 }

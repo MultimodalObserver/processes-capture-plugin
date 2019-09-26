@@ -1,15 +1,11 @@
-package mo.capture.process.plugin.views;
+package mo.capture.process.plugin.view;
 
-import mo.capture.process.plugin.models.CaptureThread;
 import mo.core.ui.Utils;
-import mo.capture.process.plugin.models.CaptureConfiguration;
+import mo.capture.process.plugin.model.CaptureConfiguration;
 import mo.core.I18n;
-import mo.organization.Configuration;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 public class ConfigurationDialog extends JDialog{
 
@@ -22,8 +18,7 @@ public class ConfigurationDialog extends JDialog{
     private JTextField snapshotCaptureTimeTextField;
     private JLabel snapshotCaptureTimeErrorLabel;
     private JButton saveConfigButton;
-    private JLabel formatLabel;
-    private JComboBox<String> formatComboBox;
+    private JCheckBox exportToCSvCheckBox;
     private I18n i18n;
 
     public ConfigurationDialog(){
@@ -50,10 +45,7 @@ public class ConfigurationDialog extends JDialog{
         this.snapshotCaptureTimeErrorLabel = new JLabel();
         this.snapshotCaptureTimeErrorLabel.setVisible(false);
         this.snapshotCaptureTimeErrorLabel.setForeground(Color.RED);
-        this.formatLabel = new JLabel(this.i18n.s("formatLabelText"));
-        this.formatComboBox = new JComboBox<>();
-        this.formatComboBox.addItem(CaptureThread.JSON_FORMAT);
-        this.formatComboBox.addItem(CaptureThread.CSV_FORMAT);
+        this.exportToCSvCheckBox = new JCheckBox(this.i18n.s("exportToCSvCheckBoxText"));
     }
 
     private void addComponents(){
@@ -104,22 +96,22 @@ public class ConfigurationDialog extends JDialog{
         this.setConstraintsForRightSide(constraints, true);
         contentPane.add(this.snapshotCaptureTimeErrorLabel, constraints);
 
-        /* Format Label*/
+        /* Export to CSV Checkbox*/
         constraints = new GridBagConstraints();
-        constraints.gridx=0;
-        constraints.gridy=4;
-        this.setConstraintsForLeftSide(constraints, false);
-        contentPane.add(this.formatLabel, constraints);
-
-        /* Format combo Box*/
-        constraints = new GridBagConstraints();
-        constraints.gridx = 1;
+        constraints.gridx = 0;
         constraints.gridy = 4;
-        this.setConstraintsForRightSide(constraints, false);
-        contentPane.add(this.formatComboBox, constraints);
+        constraints.gridheight = 1;
+        constraints.gridwidth = 2;
+        constraints.weighty = 0.0;
+        constraints.weightx = 0.0;
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        constraints.insets = new Insets(10,10,10,10);
+        contentPane.add(this.exportToCSvCheckBox, constraints);
 
         /* Save button*/
         constraints = new GridBagConstraints();
+        constraints.gridx= 0;
+        constraints.gridy=5;
         this.setConstraintsForSaveButton(constraints);
         contentPane.add(this.saveConfigButton, constraints);
     }
@@ -144,14 +136,12 @@ public class ConfigurationDialog extends JDialog{
     }
 
     private void setConstraintsForSaveButton(GridBagConstraints constraints){
-        constraints.gridx= 0;
-        constraints.gridy=5;
         constraints.gridheight=1;
         constraints.gridwidth=2;
         constraints.weightx=0.0;
         constraints.weighty=0.0;
         constraints.fill=GridBagConstraints.HORIZONTAL;
-        constraints.insets= new Insets(-10,10,10,10);
+        constraints.insets= new Insets(10,10,10,10);
     }
 
     public void showDialog(){
@@ -171,9 +161,9 @@ public class ConfigurationDialog extends JDialog{
             this.snapshotCaptureTimeErrorLabel.setText("");
             String configurationName = this.configurationNameTextField.getText();
             String snapshotCaptureTime = this.snapshotCaptureTimeTextField.getText();
+            boolean exportToCsv = this.exportToCSvCheckBox.isSelected();
             boolean invalidTime = snapshotCaptureTime.isEmpty() || !this.containsOnlyNumbers(snapshotCaptureTime)
                     || Integer.parseInt(snapshotCaptureTime) < 0;
-            String selectedOutputFormat = (String) this.formatComboBox.getSelectedItem();
             if(configurationName.isEmpty() || invalidTime){
                 if(configurationName.isEmpty()){
                     this.configurationNameErrorLabel.setText(this.i18n.s("emptyConfig"));
@@ -186,7 +176,7 @@ public class ConfigurationDialog extends JDialog{
                 }
                 return;
             }
-            this.temporalConfig = new CaptureConfiguration(configurationName, Integer.parseInt(snapshotCaptureTime), selectedOutputFormat);
+            this.temporalConfig = new CaptureConfiguration(configurationName, Integer.parseInt(snapshotCaptureTime), exportToCsv);
             this.accepted = true;
             this.setVisible(false);
             this.dispose();

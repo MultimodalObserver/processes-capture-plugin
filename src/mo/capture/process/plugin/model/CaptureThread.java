@@ -1,56 +1,40 @@
-package mo.capture.process.plugin.models;
+package mo.capture.process.plugin.model;
 
 import com.google.gson.Gson;
 import mo.capture.process.plugin.ProcessCaptureConfiguration;
 import mo.capture.process.util.MessageSender;
-import mo.communication.streaming.capture.CaptureEvent;
-import mo.communication.streaming.capture.PluginCaptureListener;
 import mo.capture.process.plugin.ProcessRecorder;
 import mo.capture.process.util.DateHelper;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class CaptureThread extends Thread {
 
-    private int status;
+    private volatile int status;
     public static final int RUNNING_STATUS = 1;
     public static final int PAUSED_STATUS = 2;
     public static final int STOPPED_STATUS = 3;
     public static final int RESUMED_STATUS = 4;
-    public static final String OTHER_STRING = "-";
-    public static final long OTHER_LONG = -1;
-    public static final String COMMA_SEPARATOR = ",";
+    static final String OTHER_STRING = "-";
+    static final long OTHER_LONG = -1;
     private long pauseTime;
     private long resumeTime;
     private int sleepTime;
-    private FileOutputStream fileOutputStream;
-    private String outputFormat;
-    public static final String CSV_FORMAT = "csv";
-    public static final String JSON_FORMAT = "json";
+    private List<OutputFile> outputFiles;
     public static final String CSV_HEADERS = "pid,captureTime,userName,startInstant,totalCpuDuration,command,supportsNormalTermination,parentPid,hasChildren";
     private final Gson gson;
 
-    public CaptureThread(int status, FileOutputStream fileOutputStream,  int sleepTime, String outputFormat) {
+    public CaptureThread(int status, List<OutputFile> outputFiles,  int sleepTime) {
         this.status = status;
         this.pauseTime = 0;
         this.resumeTime = 0;
         this.sleepTime = sleepTime;
-        this.fileOutputStream = fileOutputStream;
-        this.outputFormat = outputFormat;
         this.gson = new Gson();
-    }
-
-    public int getStatus() {
-        return status;
+        this.outputFiles = outputFiles;
     }
 
     public void setStatus(int status) {
@@ -71,15 +55,23 @@ public class CaptureThread extends Thread {
                 long now = DateHelper.nowMilliseconds();
                 long resumedCaptureTime = this.pauseTime + (now - this.resumeTime);
                 long captureTime = this.resumeTime == 0 ? now : resumedCaptureTime;
-                String processesData = this.outputFormat.equals(CSV_FORMAT) ? this.processesSnapshotToCSV(processes, captureTime) :
-                        processesSnapshotToJsonFormat(processes, captureTime);
-                try {
-                    this.fileOutputStream.write((processesData + COMMA_SEPARATOR).getBytes());
-                    MessageSender.sendMessage(ProcessCaptureConfiguration.MESSAGE_CONTENT_KEY, processesData);
-                } catch (IOException e) {
-                    ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
-                    return;
+                Snapshot snapshot = this.processestoSnapshot(processes, captureTime);
+                for(OutputFile outputFile : this.outputFiles){
+                    String toWrite ="";
+                    if(outputFile.getFormat().equals(Format.JSON.getValue())){
+                        toWrite = gson.toJson(snapshot) + Separator.JSON.getValue();
+                    }
+                    else if(outputFile.getFormat().equals(Format.CSV.getValue())){
+                        toWrite = snapshot.toCSV(Separator.CSV_COLUMN.getValue(), Separator.CSV_ROW.getValue());
+                    }
+                    try {
+                        outputFile.getOutputStream().write(toWrite.getBytes());
+                    } catch (IOException e) {
+                        ProcessRecorder.LOGGER.log(Level.SEVERE, null, e);
+                        return;
+                    }
                 }
+                MessageSender.sendMessage(ProcessCaptureConfiguration.MESSAGE_CONTENT_KEY, gson.toJson(snapshot));
                 try {
                     Thread.sleep(sleepTime*1000);
                 } catch (InterruptedException e) {
@@ -104,7 +96,7 @@ public class CaptureThread extends Thread {
         }
     }
 
-    private String processesSnapshotToJsonFormat(Stream<ProcessHandle> processes, long captureTime){
+    private Snapshot processestoSnapshot(Stream<ProcessHandle> processes, long captureTime){
         List<Process> processesList = new ArrayList<>();
         processes.forEach(process -> {
             Process processModel = new Process(process);
@@ -112,20 +104,7 @@ public class CaptureThread extends Thread {
         });
         Snapshot snapshot = new Snapshot();
         snapshot.setProcesses(processesList);
-        snapshot.setCaptureMilliseconds(captureTime);
-        return gson.toJson(snapshot);
-    }
-
-    private String processesSnapshotToCSV(Stream<ProcessHandle> processes, long captureTime){
-        StringBuilder result = new StringBuilder();
-        List <String> processesList = new ArrayList<>();
-        processes.forEach(process -> {
-            Process processModel = new Process(process);
-            processesList.add(processModel.toCSV(captureTime));
-        });
-        for(String processString : processesList){
-            result.append(processString + System.getProperty("line.separator"));
-        }
-        return result.toString();
+        snapshot.setCaptureTimestamp(captureTime);
+        return snapshot;
     }
 }

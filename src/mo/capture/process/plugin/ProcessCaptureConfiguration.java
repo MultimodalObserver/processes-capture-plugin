@@ -2,12 +2,12 @@ package mo.capture.process.plugin;
 
 import com.google.gson.Gson;
 import mo.capture.RecordableConfiguration;
-import mo.capture.process.plugin.models.ProcessRequest;
+import mo.capture.process.plugin.model.ProcessRequest;
 import mo.capture.process.util.MessageSender;
 import mo.communication.*;
 import mo.communication.streaming.capture.PluginCaptureListener;
 import mo.communication.streaming.capture.PluginCaptureSender;
-import mo.capture.process.plugin.models.CaptureConfiguration;
+import mo.capture.process.plugin.model.CaptureConfiguration;
 import mo.organization.Configuration;
 import mo.organization.Participant;
 import mo.organization.ProjectOrganization;
@@ -17,12 +17,9 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.rmi.Remote;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -167,25 +164,21 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
                 ProcessRequest.class);
         if(processRequest.getAction().equals("newProcess") && processRequest.getNewProcessPath() != null){
             this.initNewProcess(processRequest.getNewProcessPath(), true);
-            return;
         }
-        Optional<ProcessHandle> process;
-        try{
-            process = ProcessHandle.of(processRequest.getSelectedProcessPID());
-        }
-        catch(NullPointerException e){
-            return;
-        }
-        if(process.isEmpty()){
-            //Mensaje!!
-            MessageSender.sendMessage(MESSAGE_ERROR_KEY,
-                    "Ya no existe el proceso con ese PID");
-        }
-        else{
-            if(processRequest.getAction().equals("destroy")){
+        else if(processRequest.getAction().equals("destroy") || processRequest.getAction().equals("restart")){
+            Optional<ProcessHandle> process;
+            try{
+                process = ProcessHandle.of(processRequest.getSelectedProcessPID());
+            }
+            catch(NullPointerException e){
+                MessageSender.sendMessage(MESSAGE_ERROR_KEY,
+                        "Ya no existe el proceso con ese PID");
+                return;
+            }
+            if(processRequest.getAction().equals("destroy") && process.isPresent()){
                 this.destroyProcess(process.get(), true);
             }
-            else if(processRequest.getAction().equals("restart")){
+            else if(processRequest.getAction().equals("restart") && process.isPresent()){
                 this.restartProcess(process.get());
             }
         }
@@ -195,11 +188,11 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
         try {
             Runtime.getRuntime().exec(newProcessPath);
         } catch (IOException e) {
-            if(!sendMessage){
-                return false;
+            if(sendMessage){
+                MessageSender.sendMessage(MESSAGE_ERROR_KEY,
+                        "Error al iniciar el proceso");
             }
-            MessageSender.sendMessage(MESSAGE_ERROR_KEY,
-                    "Error al iniciar el proceso");
+            return false;
         }
         if(sendMessage){
             MessageSender.sendMessage(MESSAGE_SUCCESS_KEY,
@@ -210,17 +203,13 @@ public class ProcessCaptureConfiguration implements RecordableConfiguration, Plu
 
     private boolean destroyProcess(ProcessHandle processHandle, boolean sendMessage){
         boolean destroyed = processHandle.destroyForcibly();
-        if(!destroyed){
-            if(sendMessage){
-                MessageSender.sendMessage(MESSAGE_ERROR_KEY,
-                        "El proceso no pudo ser destruido");
-            }
+        if(!destroyed && sendMessage){
+            MessageSender.sendMessage(MESSAGE_ERROR_KEY,
+                    "El proceso no pudo ser destruido");
         }
-        else{
-            if(sendMessage){
-                MessageSender.sendMessage(MESSAGE_SUCCESS_KEY,
-                        "El proceso fue destruido");
-            }
+        else if(sendMessage){
+            MessageSender.sendMessage(MESSAGE_SUCCESS_KEY,
+                    "El proceso fue destruido");
         }
         return destroyed;
     }

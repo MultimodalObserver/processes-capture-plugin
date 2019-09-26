@@ -1,4 +1,4 @@
-package mo.capture.process.plugin.models;
+package mo.capture.process.plugin.model;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -8,16 +8,16 @@ public class CaptureConfiguration {
 
     private String name;
     private int snapshotCaptureTime;
-    private String outputFormat;
+    private boolean exportToCsv;
 
     public CaptureConfiguration(){
 
     }
 
-    public CaptureConfiguration(String name, int snapshotCaptureTime, String outputFormat) {
+    public CaptureConfiguration(String name, int snapshotCaptureTime, boolean exportToCsv) {
         this.name = name;
         this.snapshotCaptureTime = snapshotCaptureTime;
-        this.outputFormat = outputFormat;
+        this.exportToCsv = exportToCsv;
     }
 
     public String getName() {
@@ -36,11 +36,11 @@ public class CaptureConfiguration {
         this.snapshotCaptureTime = snapshotCaptureTime;
     }
 
-    public String getOutputFormat() {
-        return outputFormat;
+    public boolean isExportToCsv() {
+        return exportToCsv;
     }
 
-    public void setOutputFormat(String outputFormat) {
-        this.outputFormat = outputFormat;
+    public void setExportToCsv(boolean exportToCsv) {
+        this.exportToCsv = exportToCsv;
     }
 }
