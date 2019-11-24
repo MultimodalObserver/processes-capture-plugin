@@ -13,7 +13,7 @@ To run this project you must run the file that was previously built with the com
 java -jar <path_to_built_jar>
  ~~~
 
-##Using more plugins
+## Using more plugins
 
 
 To include more plugins within the MO instance that is created by the jar file, you must place the jars of the others plugins in the *plugins* folder that is generated at the jar level after the first MO execution.
