@@ -1,8 +1,8 @@
-#MO Processes Capture Plugin
+# MO Processes Capture Plugin
 
 Developed by Abraham Cerda (abraham.cerda@usach.cl).
 
-##Build
+## Build
 To build this project you must configure your build tool (Maven, Gradle, integrated IDE build tool or manually) to generate an executable Jar file that must contains the MO JAR file inside.
 
 ## Run
